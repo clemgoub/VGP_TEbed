@@ -17,6 +17,18 @@ Hierarchical structure of annotation. We have multiple tools, and each tools can
 
 For a given base of the genome, we can ask how confident we are that this is a repeat. We can do that by asking how many tool agree that this is a repeat. But what if one tools has 2 or more overlaping hits for that base? Is is further evidence, or less or is it irrelevant (I think it is irrelevant and instead it says that there is redundancy in the library).
 
+For a given base, we have multiple questions:
+- is it a repeat?
+- what type of repeat? (classification)
+  - TE / non-TE
+  - class I / class II
+  - order
+  - finer grain?
+- what is the consensus in the library?
+- what is the divergence to consensus?
+- what is the orientation?
+- what is the position in the consensus
+
 ## Specification
 
 describe here the format specification of the integrated track (it will be `.bed`)
