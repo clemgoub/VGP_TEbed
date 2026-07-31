@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vgptrack"
+version = "0.1.0.dev0"
+description = "Multi-tool repeat annotation track hub for Vertebrate Genomes Project assemblies (prototype -- not for research use)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
+dependencies = ["pandas>=1.5", "numpy>=1.23"]
+
+# Development status is deliberately "3 - Alpha": this has not been benchmarked
+# and must not be mistaken for a released annotation product.
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+[project.urls]
+Repository = "https://github.com/clemgoub/VGP_TEbed"
+
+[project.scripts]
+vgptrack = "vgptrack.cli:main"
+
+[tool.setuptools]
+packages = ["vgptrack"]

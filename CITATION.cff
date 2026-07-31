@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: VGP_TEbed -- integrated repeat track for the Vertebrate Genomes Project
+message: >-
+  This is an unreleased prototype and has not been benchmarked.
+  Please do not cite it as a source of repeat annotation.
+type: software
+authors:
+  - family-names: Goubert
+    given-names: Clement
+repository-code: https://github.com/clemgoub/VGP_TEbed
+license: GPL-3.0
+version: 0.1.0-dev

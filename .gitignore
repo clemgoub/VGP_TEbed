@@ -1,0 +1,30 @@
+# Build outputs -- regenerable from the pipeline, far too large to track
+hub/
+work/
+smoke/
+*.bb
+*.bw
+*.bigBed
+*.bigWig
+*.bedGraph
+!tests/data/*.bed.gz
+
+# IGV session files contain absolute local paths -- regenerate with
+#   python -m vgptrack.cli session --hub <hubdir>
+igv_session.xml
+*.genome.json
+
+# UCSC binaries
+bin/
+*.tar.gz
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# OS
+.DS_Store
