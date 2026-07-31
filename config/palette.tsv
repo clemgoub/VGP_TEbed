@@ -1,0 +1,25 @@
+# Class colour palette for the repeatSummary track.
+#
+# UCSC recommends <= 8 colours per track to avoid exhausting browser colour
+# resources, so this palette is deliberately coarse: colour carries ORDER-level
+# information, and finer classification is read from the mouseover.
+#
+# `match_path` is matched as a prefix against the canonical class path; the
+# LONGEST matching prefix wins, so adding a finer rule later does not require
+# touching the coarse ones. Colours are the Paul Tol / colorbrewer-derived set
+# used by convention in TE figures, chosen to stay distinguishable in the
+# browser's dense display mode and under deuteranopia.
+#
+match_path	color	label	description
+repeat	128,128,128	Repeat (unclassified)	Fallback: something called a repeat here but no class agreement.
+repeat:TE:ClassI:LINE	51,160,44	LINE	Non-LTR retrotransposon, autonomous
+repeat:TE:ClassI:SINE	178,223,138	SINE	Non-LTR retrotransposon, non-autonomous
+repeat:TE:ClassI:LTR	31,119,180	LTR	LTR retrotransposon
+repeat:TE:ClassI:PLE	31,119,180	PLE	Penelope-like; grouped with LTR for colour only
+repeat:TE:ClassI:DIRS	31,119,180	DIRS	DIRS/tyrosine-recombinase; grouped with LTR for colour only
+repeat:TE:ClassII	227,26,28	DNA	DNA transposon (TIR and Crypton)
+repeat:TE:ClassII:Helitron	255,127,0	Helitron/Maverick	Rolling-circle and self-synthesising DNA transposons
+repeat:TE:ClassII:Maverick	255,127,0	Helitron/Maverick	Rolling-circle and self-synthesising DNA transposons
+repeat:tandem	152,78,163	Tandem/Simple	Satellite, simple repeat, low complexity
+repeat:multigene	255,217,47	Multigene	rRNA, tRNA, snRNA and other repeated host genes
+CONFLICT	0,0,0	Class conflict	Reserved: tools disagree at or above order level.

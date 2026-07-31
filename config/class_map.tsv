@@ -1,0 +1,210 @@
+#vocabulary_version: dfam-rm-2026.1-draft
+#vocabulary_authority: Dfam / RepeatMasker class notation, arranged on the Wicker et al. (2007) hierarchy
+#vocabulary_status: PROVISIONAL -- superseded when the unified Dfam/Repbase classification is released
+#
+# CLASS VOCABULARY MAP
+#
+# Maps a raw class/family label as emitted by a tool onto a canonical
+# hierarchical path. This file is INPUT, not logic: the pipeline reads it at
+# `harmonize` time and never hardcodes a class name. Re-mapping is a re-run of
+# harmonize + summarize; the per-base segmentation is class-agnostic and is not
+# invalidated.
+#
+# Raw labels are ALWAYS preserved verbatim alongside the canonical path in every
+# output, so no information is lost to a mapping decision and any mapping can be
+# audited or reversed after the fact.
+#
+# CANONICAL PATH GRAMMAR
+#   repeat : {TE|tandem|multigene|artefact} : {ClassI|ClassII} : order : superfamily
+#   Truncate at the deepest level actually supported by the label. A label that
+#   only says "DNA" maps to repeat:TE:ClassII and stops -- it does not guess an order.
+#
+# COLUMNS
+#   raw_label      Label as it appears in the tool's output, matched case-insensitively.
+#                  A trailing `*` makes it a prefix rule (longest match wins), which
+#                  absorbs the endless RepeatMasker subfamily suffixes.
+#   tool_id        Tool this rule applies to, or `*` for all tools.
+#   canonical_path Canonical path, `:`-separated.
+#   canonical_v2   Reserved for the unified Dfam/Repbase classification. Left blank
+#                  until it lands; when populated, both vocabularies can be carried
+#                  simultaneously so tracks can be rebuilt under either.
+#   is_te          yes|no|unknown -- answers design question 1.3 directly.
+#   confidence     high|medium|low -- how certain the mapping is. `low` entries are
+#                  the ones most worth your review.
+#   note           Rationale, and any place the tool's usage diverges from Dfam's.
+#
+raw_label	tool_id	canonical_path	canonical_v2	is_te	confidence	note
+# ---------------------------------------------------------------- RepeatMasker / Dfam: Class I, LTR
+LTR	*	repeat:TE:ClassI:LTR		yes	high	Order only; no superfamily asserted.
+LTR/Gypsy*	*	repeat:TE:ClassI:LTR:Gypsy		yes	high	Ty3/Gypsy. Dfam is migrating the name to Ty3; canonical_v2 will likely read Ty3.
+LTR/Ty3*	*	repeat:TE:ClassI:LTR:Gypsy		yes	high	Newer Dfam name for Gypsy; folded to the same node so old and new libraries agree.
+LTR/Copia*	*	repeat:TE:ClassI:LTR:Copia		yes	high	Ty1/Copia.
+LTR/Ty1*	*	repeat:TE:ClassI:LTR:Copia		yes	high	Newer Dfam name for Copia.
+LTR/Pao*	*	repeat:TE:ClassI:LTR:BelPao		yes	high	Bel/Pao.
+LTR/Bel*	*	repeat:TE:ClassI:LTR:BelPao		yes	high	Bel/Pao.
+LTR/ERV1*	*	repeat:TE:ClassI:LTR:ERV		yes	high	Retroviral superfamily; ERV1 subgroup.
+LTR/ERVK*	*	repeat:TE:ClassI:LTR:ERV		yes	high	
+LTR/ERVL*	*	repeat:TE:ClassI:LTR:ERV		yes	high	Includes ERVL-MaLR.
+LTR/ERV*	*	repeat:TE:ClassI:LTR:ERV		yes	high	Catch-all for remaining ERV subgroups.
+LTR/Retroviral*	*	repeat:TE:ClassI:LTR:ERV		yes	medium	Rare label; treated as ERV.
+LTR/DIRS*	*	repeat:TE:ClassI:DIRS		yes	medium	RepeatMasker files DIRS under LTR; Wicker makes it a separate order. Canonical path follows Wicker.
+LTR/Ngaro*	*	repeat:TE:ClassI:DIRS		yes	medium	Ngaro is a DIRS-group element; same divergence from RM's filing as above.
+LTR/Viper*	*	repeat:TE:ClassI:DIRS		yes	low	Viper elements, DIRS group. Rare; review if abundant.
+LTR/Unknown	*	repeat:TE:ClassI:LTR		yes	high	Order asserted, superfamily not.
+LTR/unknown	*	repeat:TE:ClassI:LTR		yes	high	Case variant kept explicit for readability.
+# ---------------------------------------------------------------- Class I, LINE / PLE
+LINE	*	repeat:TE:ClassI:LINE		yes	high	
+LINE/L1*	*	repeat:TE:ClassI:LINE:L1		yes	high	
+LINE/L2*	*	repeat:TE:ClassI:LINE:Jockey		yes	medium	L2 belongs to the Jockey superfamily in the Wicker scheme.
+LINE/CR1*	*	repeat:TE:ClassI:LINE:Jockey		yes	medium	CR1 is Jockey-group; dominant LINE in many fish and birds, so this rule matters here.
+LINE/Jockey*	*	repeat:TE:ClassI:LINE:Jockey		yes	high	
+LINE/RTE*	*	repeat:TE:ClassI:LINE:RTE		yes	high	Includes RTE-BovB and RTE-X.
+LINE/Rex*	*	repeat:TE:ClassI:LINE:RTE		yes	medium	Rex/Babar, RTE-group. Common in teleosts.
+LINE/R2*	*	repeat:TE:ClassI:LINE:R2		yes	high	
+LINE/R1*	*	repeat:TE:ClassI:LINE:Jockey		yes	medium	R1 is Jockey-group in Wicker.
+LINE/Dong-R4*	*	repeat:TE:ClassI:LINE:R2		yes	medium	Dong/R4, R2-group.
+LINE/I*	*	repeat:TE:ClassI:LINE:I		yes	high	
+LINE/Tx1*	*	repeat:TE:ClassI:LINE:Jockey		yes	low	Tx1, Jockey-group. Review.
+LINE/Proto*	*	repeat:TE:ClassI:LINE		yes	low	Proto1/Proto2; order only.
+LINE/Penelope*	*	repeat:TE:ClassI:PLE		yes	medium	RepeatMasker files Penelope under LINE; Wicker gives PLE its own order. Canonical path follows Wicker.
+PLE*	*	repeat:TE:ClassI:PLE		yes	high	
+Penelope*	*	repeat:TE:ClassI:PLE		yes	high	
+LINE/Unknown	*	repeat:TE:ClassI:LINE		yes	high	
+# ---------------------------------------------------------------- Class I, SINE / Retroposon
+SINE	*	repeat:TE:ClassI:SINE		yes	high	
+SINE/tRNA*	*	repeat:TE:ClassI:SINE:tRNA		yes	high	tRNA-derived head.
+SINE/5S*	*	repeat:TE:ClassI:SINE:5S		yes	high	
+SINE/7SL*	*	repeat:TE:ClassI:SINE:7SL		yes	high	
+SINE/Alu*	*	repeat:TE:ClassI:SINE:7SL		yes	high	Alu is 7SL-derived. Primate-specific; present for library completeness.
+SINE/MIR*	*	repeat:TE:ClassI:SINE:tRNA		yes	high	MIR is tRNA-derived; ancient and widespread in vertebrates.
+SINE/Deu*	*	repeat:TE:ClassI:SINE		yes	medium	Deuterostome SINEs, mixed origin; order only.
+SINE/Unknown	*	repeat:TE:ClassI:SINE		yes	high	
+Retroposon*	*	repeat:TE:ClassI		yes	low	RM's Retroposon bucket (SVA etc.) is heterogeneous; class only, no order asserted.
+# ---------------------------------------------------------------- Class II, TIR
+DNA	*	repeat:TE:ClassII		yes	high	Class only; RM's bare DNA label asserts no order.
+DNA/hAT*	*	repeat:TE:ClassII:TIR:hAT		yes	high	Covers hAT-Charlie, hAT-Ac, hAT-Tip100, hAT-Blackjack etc.
+DNA/TcMar*	*	repeat:TE:ClassII:TIR:Tc1Mariner		yes	high	Covers TcMar-Tigger, TcMar-Mariner, TcMar-Tc1.
+DNA/Tc1*	*	repeat:TE:ClassII:TIR:Tc1Mariner		yes	high	
+DNA/Mariner*	*	repeat:TE:ClassII:TIR:Tc1Mariner		yes	high	
+DNA/CMC*	*	repeat:TE:ClassII:TIR:CACTA		yes	high	CMC-EnSpm is the CACTA superfamily.
+DNA/EnSpm*	*	repeat:TE:ClassII:TIR:CACTA		yes	high	
+DNA/CACTA*	*	repeat:TE:ClassII:TIR:CACTA		yes	high	
+DNA/PIF*	*	repeat:TE:ClassII:TIR:PIFHarbinger		yes	high	PIF-Harbinger.
+DNA/Harbinger*	*	repeat:TE:ClassII:TIR:PIFHarbinger		yes	high	
+DNA/MULE*	*	repeat:TE:ClassII:TIR:Mutator		yes	high	MULE-MuDR is the Mutator superfamily.
+DNA/MuDR*	*	repeat:TE:ClassII:TIR:Mutator		yes	high	
+DNA/Mutator*	*	repeat:TE:ClassII:TIR:Mutator		yes	high	
+DNA/PiggyBac*	*	repeat:TE:ClassII:TIR:PiggyBac		yes	high	
+DNA/Kolobok*	*	repeat:TE:ClassII:TIR:Kolobok		yes	high	
+DNA/Merlin*	*	repeat:TE:ClassII:TIR:Merlin		yes	high	
+DNA/Zisupton*	*	repeat:TE:ClassII:TIR		yes	low	Zisupton; order only pending a settled superfamily assignment.
+DNA/Academ*	*	repeat:TE:ClassII:TIR:Academ		yes	medium	
+DNA/Ginger*	*	repeat:TE:ClassII:TIR:Ginger		yes	medium	
+DNA/Sola*	*	repeat:TE:ClassII:TIR:Sola		yes	medium	
+DNA/Novosib*	*	repeat:TE:ClassII:TIR		yes	low	Order only.
+DNA/Dada*	*	repeat:TE:ClassII:TIR		yes	low	Order only.
+DNA/Crypton*	*	repeat:TE:ClassII:Crypton		yes	high	Crypton is its own order (subclass 1) in Wicker, not TIR.
+Crypton*	*	repeat:TE:ClassII:Crypton		yes	high	
+DNA/Unknown	*	repeat:TE:ClassII		yes	high	
+# ---------------------------------------------------------------- Class II, subclass 2
+RC/Helitron*	*	repeat:TE:ClassII:Helitron		yes	high	Rolling-circle. Subclass 2 -- copies without a double-strand cut.
+Helitron*	*	repeat:TE:ClassII:Helitron		yes	high	
+RC*	*	repeat:TE:ClassII:Helitron		yes	medium	Bare RC label; Helitron is the only rolling-circle order in practice.
+Maverick*	*	repeat:TE:ClassII:Maverick		yes	high	Maverick/Polinton.
+Polinton*	*	repeat:TE:ClassII:Maverick		yes	high	
+DNA/Maverick*	*	repeat:TE:ClassII:Maverick		yes	high	
+# ---------------------------------------------------------------- Tandem, low-complexity, host genes
+Satellite*	*	repeat:tandem:satellite		no	high	Includes Satellite/centr, /telo, /acro.
+Simple_repeat*	*	repeat:tandem:simple		no	high	
+Low_complexity*	*	repeat:tandem:lowcomplexity		no	high	
+tandem*	*	repeat:tandem		no	medium	Generic tandem label.
+rRNA	*	repeat:multigene:rRNA		no	high	Host gene family, not a TE. Counts as repeat, not as TE.
+tRNA	*	repeat:multigene:tRNA		no	high	Distinct from SINE/tRNA, which IS a TE -- do not merge these two rules.
+snRNA	*	repeat:multigene:snRNA		no	high	
+scRNA	*	repeat:multigene:scRNA		no	high	
+srpRNA	*	repeat:multigene:srpRNA		no	high	
+RNA	*	repeat:multigene		no	medium	Underspecified RNA label.
+ARTEFACT	*	repeat:artefact		no	high	RepeatMasker artefact call; excluded from repeat coverage by default.
+# ---------------------------------------------------------------- Unknown / unclassified
+Unknown	*	repeat		unknown	high	UNINFORMATIVE, NOT CONFLICTING. Contributes support for `is a repeat` but abstains from every classification vote.
+Unspecified	*	repeat		unknown	high	As Unknown.
+Unclassified	*	repeat		unknown	high	As Unknown.
+NA	*	repeat		unknown	high	As Unknown.
+repeat_region	*	repeat		unknown	high	EDTA's generic feature type.
+# ---------------------------------------------------------------- EDTA two-letter TE-ontology codes (Wicker et al. 2007)
+# EDTA emits these as three-letter codes, sometimes with a Class/ prefix
+# (e.g. "DNA/DTA", "MITE/DTT", "LTR/RLC"). Rules are written to match the bare
+# code; the ingest step strips any leading "Class/" prefix before lookup.
+RLC*	edta	repeat:TE:ClassI:LTR:Copia		yes	high	Wicker code: R=retro, L=LTR, C=Copia.
+RLG*	edta	repeat:TE:ClassI:LTR:Gypsy		yes	high	Gypsy/Ty3.
+RLB*	edta	repeat:TE:ClassI:LTR:BelPao		yes	high	Bel/Pao.
+RLR*	edta	repeat:TE:ClassI:LTR:ERV		yes	high	Retrovirus.
+RLE*	edta	repeat:TE:ClassI:LTR:ERV		yes	high	ERV.
+RLX*	edta	repeat:TE:ClassI:LTR		yes	high	LTR, superfamily unknown -- order still asserted.
+RIL*	edta	repeat:TE:ClassI:LINE:L1		yes	high	L1.
+RIR*	edta	repeat:TE:ClassI:LINE:R2		yes	high	R2.
+RIT*	edta	repeat:TE:ClassI:LINE:RTE		yes	high	RTE.
+RIJ*	edta	repeat:TE:ClassI:LINE:Jockey		yes	high	Jockey.
+RII*	edta	repeat:TE:ClassI:LINE:I		yes	high	I element.
+RIX*	edta	repeat:TE:ClassI:LINE		yes	high	LINE, superfamily unknown.
+RST*	edta	repeat:TE:ClassI:SINE:tRNA		yes	high	tRNA-derived SINE.
+RSL*	edta	repeat:TE:ClassI:SINE:7SL		yes	high	7SL-derived SINE.
+RSS*	edta	repeat:TE:ClassI:SINE:5S		yes	high	5S-derived SINE.
+RSX*	edta	repeat:TE:ClassI:SINE		yes	high	SINE, superfamily unknown.
+RPP*	edta	repeat:TE:ClassI:PLE		yes	high	Penelope.
+RXX*	edta	repeat:TE:ClassI		yes	high	Class I, order unknown.
+DTA*	edta	repeat:TE:ClassII:TIR:hAT		yes	high	D=DNA, T=TIR, A=hAT.
+DTC*	edta	repeat:TE:ClassII:TIR:CACTA		yes	high	CACTA.
+DTH*	edta	repeat:TE:ClassII:TIR:PIFHarbinger		yes	high	PIF-Harbinger.
+DTM*	edta	repeat:TE:ClassII:TIR:Mutator		yes	high	Mutator.
+DTT*	edta	repeat:TE:ClassII:TIR:Tc1Mariner		yes	high	Tc1/Mariner.
+DTP*	edta	repeat:TE:ClassII:TIR:PiggyBac		yes	medium	PiggyBac. Non-standard extension of the Wicker codes.
+DTX*	edta	repeat:TE:ClassII:TIR		yes	high	TIR, superfamily unknown.
+DHH*	edta	repeat:TE:ClassII:Helitron		yes	high	D=DNA, H=Helitron.
+DMM*	edta	repeat:TE:ClassII:Maverick		yes	high	Maverick/Polinton.
+DYC*	edta	repeat:TE:ClassII:Crypton		yes	high	Crypton.
+DXX*	edta	repeat:TE:ClassII		yes	high	Class II, order unknown.
+MITE*	edta	repeat:TE:ClassII:TIR		yes	medium	MITEs are non-autonomous TIR derivatives. EDTA usually suffixes the code (MITE/DTA); the more specific prefix rule wins where present.
+TIR*	edta	repeat:TE:ClassII:TIR		yes	high	
+XXX*	edta	repeat		unknown	high	EDTA's fully-unknown code. Uninformative, not conflicting.
+# ---------------------------------------------------------------- Added from observed labels on GCA_951799975.1
+# These were found by auditing the complete label inventory of the real RM2 /
+# EDTA / Pantera outputs against this map. Together they closed all 7 remaining
+# unmapped labels (0.41% of RM2 hits, 0.07% of EDTA hits).
+DNA/P*	*	repeat:TE:ClassII:TIR:PElement		yes	medium	P-element superfamily. RM2: 6159 hits. Wicker places P among the TIR superfamilies.
+DNA/IS3EU*	*	repeat:TE:ClassII:TIR		yes	low	IS3EU; eukaryotic IS3-like. Order only -- superfamily placement unsettled. RM2: 1806 hits.
+SINE/ID*	*	repeat:TE:ClassI:SINE:tRNA		yes	medium	ID SINEs are tRNA(Ala)-derived. RM2: 1407, EDTA: 217.
+SINE/B2*	*	repeat:TE:ClassI:SINE:tRNA		yes	medium	B2 SINEs are tRNA-derived. EDTA: 36 hits.
+LTR/Retrovirus*	*	repeat:TE:ClassI:LTR:ERV		yes	high	EDTA spelling of the retroviral superfamily. 331 hits.
+DNA/Helitron*	*	repeat:TE:ClassII:Helitron		yes	high	EDTA files Helitron under DNA/ rather than RC/. 136847 hits -- the third most abundant EDTA label, so this rule matters.
+LINE/Rex-Babar*	*	repeat:TE:ClassI:LINE:RTE		yes	medium	Rex/Babar, RTE-group. Abundant in teleosts: RM2 52471, EDTA 42262.
+LINE/CR1-Zenon*	*	repeat:TE:ClassI:LINE:Jockey		yes	medium	CR1-Zenon, Jockey-group.
+SINE/5S-Deu-L2*	*	repeat:TE:ClassI:SINE:5S		yes	high	5S-derived SINE with an L2-derived body. RM2 58923, EDTA 95583.
+SINE/tRNA-V-RTE*	*	repeat:TE:ClassI:SINE:tRNA		yes	high	tRNA-Val SINE mobilised by RTE.
+SINE/tRNA-Meta*	*	repeat:TE:ClassI:SINE:tRNA		yes	high	
+PLE/Chlamys*	*	repeat:TE:ClassI:PLE		yes	high	Penelope-like, Chlamys group.
+PLE/Naiad*	*	repeat:TE:ClassI:PLE		yes	high	Penelope-like, Naiad group.
+DNA/Crypton*	*	repeat:TE:ClassII:Crypton		yes	high	Covers Crypton-V, -H, -A. RM2 total ~22000.
+DNA/Kolobok-T2*	*	repeat:TE:ClassII:TIR:Kolobok		yes	high	
+DNA/PIF-ISL2EU*	*	repeat:TE:ClassII:TIR:PIFHarbinger		yes	medium	ISL2EU is PIF-Harbinger-group.
+DNA/TcMar-ISRm11*	*	repeat:TE:ClassII:TIR:Tc1Mariner		yes	medium	
+DNA/TcMar-Fot1*	*	repeat:TE:ClassII:TIR:Tc1Mariner		yes	high	
+DNA/Academ*	*	repeat:TE:ClassII:TIR:Academ		yes	medium	Covers Academ-1, Academ-2.
+DNA/Sola*	*	repeat:TE:ClassII:TIR:Sola		yes	medium	Covers Sola-1, Sola-2.
+DNA/Ginger*	*	repeat:TE:ClassII:TIR:Ginger		yes	medium	
+DNA/hAT*	*	repeat:TE:ClassII:TIR:hAT		yes	high	Covers hAT-Ac, -Charlie, -Tip100, -hAT5, -hAT6, -hATm, -Blackjack, -Tag1, -hobo.
+LINE/Proto2*	*	repeat:TE:ClassI:LINE		yes	low	Proto2; order only.
+LINE/R2-Hero*	*	repeat:TE:ClassI:LINE:R2		yes	medium	R2-group.
+LINE/L1-Tx1*	*	repeat:TE:ClassI:LINE:L1		yes	medium	L1-Tx1; filed with L1 rather than Jockey, following the RM label.
+LTR/Ngaro*	*	repeat:TE:ClassI:DIRS		yes	medium	Abundant here (RM2 63285), so the DIRS-vs-LTR filing decision is material for this assembly.
+unknown	*	repeat		unknown	high	EDTA lowercase spelling. 20655 hits.
+SINE	*	repeat:TE:ClassI:SINE		yes	high	Bare SINE label (Pantera, 3061 hits).
+# ---------------------------------------------------------------- fastLTR (structural, LTR-only)
+LTR_retrotransposon	fastltr	repeat:TE:ClassI:LTR		yes	high	Structural call. GFF3 feature type.
+LTR_element	fastltr	repeat:TE:ClassI:LTR		yes	high	
+long_terminal_repeat	fastltr	repeat:TE:ClassI:LTR		yes	high	The LTR proper, as opposed to the internal region.
+target_site_duplication	fastltr	repeat:TE:ClassI:LTR		yes	medium	TSD flank. Reported but should not extend the element body.
+solo_LTR	fastltr	repeat:TE:ClassI:LTR		yes	high	Recombined remnant; genuinely LTR but never full-length.
+Copia	fastltr	repeat:TE:ClassI:LTR:Copia		yes	high	Assigned by protein-domain similarity, not by library match.
+Gypsy	fastltr	repeat:TE:ClassI:LTR:Gypsy		yes	high	
+unknown_LTR	fastltr	repeat:TE:ClassI:LTR		yes	high	Order asserted, superfamily not.
