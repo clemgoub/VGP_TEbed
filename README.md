@@ -18,6 +18,9 @@
 >   layer showing what existing tools currently say, published while the
 >   official pipeline is being developed.
 >
+> Much of this code and documentation was AI-drafted and human-reviewed — see
+> [AI usage disclosure](#ai-usage-disclosure).
+>
 > If you need repeat annotation for analysis today, run a tool you can cite and
 > validate yourself. If you want to help us make this trustworthy, see
 > [Contributing](#contributing).
@@ -173,6 +176,34 @@ Most useful right now:
   [BED16 input format](docs/INPUT_FORMAT.md). EDTA and fastLTR are wanted.
 - **Design critique** — the open questions are collected in
   [docs/DESIGN_NOTES.md](docs/DESIGN_NOTES.md).
+
+## AI usage disclosure
+
+**Much of the code and documentation in this repository was written with an AI
+assistant (Anthropic's Claude), working interactively with the maintainer.** We
+disclose this for the same reason the development-status warning above exists:
+you should know what you are looking at before you rely on it.
+
+What that means concretely:
+
+- **Design decisions are human.** What the tracks represent, how disagreement is
+  encoded, what counts as support, and the decision not to merge tools into a
+  single answer were specified by the maintainer.
+- **Most implementation and prose were AI-drafted**, then reviewed, corrected
+  and tested by the maintainer. Commits made by the assistant carry a
+  `Co-authored-by:` trailer.
+- **Verification does not depend on trusting either of us.** Every quantitative
+  claim in the README and [SPECIFICATION.md](docs/SPECIFICATION.md) is derived
+  from the built tracks, the bundled test slice reproduces its documented output
+  exactly, and hubs are validated with UCSC `hubCheck`. Re-run the quickstart
+  and check.
+- **The known limitations are unchanged by this.** The output is not
+  benchmarked, and no amount of code review substitutes for a curated truth set
+  — see [Known limitations](docs/SPECIFICATION.md#9-known-limitations).
+
+Treat AI-drafted code the way you would treat code from any unfamiliar
+contributor: read it before depending on it, and report anything that looks
+wrong. Bug reports are welcome and useful.
 
 ## Citing
 
