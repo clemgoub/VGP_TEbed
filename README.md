@@ -1,148 +1,184 @@
-# An integrated TE track for the Vertebrate Genome Project
+# An integrated TE track for the Vertebrate Genomes Project
 
-/// work in progress, subject to change ///
+> ## ⚠️ Under active development — not for research use
+>
+> **This repository is a working prototype. Do not use these tracks or this
+> pipeline as a source of repeat annotation for research.**
+>
+> - Output has **not been benchmarked** against a curated truth set. We do not
+>   currently know its error rate.
+> - The class vocabulary is **provisional** (`dfam-rm-2026.1-draft`) and will be
+>   revised when the unified Dfam/Repbase classification is released. Class
+>   labels may change.
+> - Formats, field names and semantics **will change without notice** and
+>   without migration paths.
+> - Only **one assembly** has been processed end to end, with **three of four**
+>   intended tools.
+> - This is **not** the official VGP repeat annotation. It is a transparency
+>   layer showing what existing tools currently say, published while the
+>   official pipeline is being developed.
+>
+> If you need repeat annotation for analysis today, run a tool you can cite and
+> validate yourself. If you want to help us make this trustworthy, see
+> [Contributing](#contributing).
+
+---
 
 ## Purpose
 
-Development of an integrated track in `.bed` format to summarize TE annotations emanating from multiple tools such as `RepeatModeler2`, `EDTA`, `Pantera`, etc... used in the Vertebrate Genome Project. 
-The track will display different level of information and will refer back to each individual tool specifics.
+Many repeat-annotation tools are run on Vertebrate Genomes Project assemblies,
+and they disagree — about where repeats are, how far they extend, and what they
+are. This project publishes those disagreements **as evidence rather than as a
+verdict**.
 
-## Concept / Brainstorming
+Nothing is filtered on the basis of agreement. A locus called by one tool alone
+is displayed as prominently as one called by all of them. Where tools disagree,
+the disagreement is encoded in the display rather than resolved away.
 
-We are looking at annotating each base of a genome. For each base we ask: is it a TE? If yes, what type of TE?
-Hierarchical structure of annotation. We have multiple tools, and each tools can have overlapping annotations.
-1. The smallest unit is a hit made by one tool, represented by an interval.
-2. The same tool can have overlapping hits
-3. Multiple tools can have overlapping hits
+This is deliberately *not* a merged annotation. Merging requires deciding whose
+boundary and whose classification wins, and that decision is exactly what the
+official pipeline is being built to make. Until then, the honest product is the
+evidence.
 
-For a given base of the genome, we can ask how confident we are that this is a repeat. We can do that by asking how many tool agree that this is a repeat. But what if one tools has 2 or more overlaping hits for that base? Is is further evidence, or less or is it irrelevant (I think it is irrelevant and instead it says that there is redundancy in the library).
+## What it produces
 
-For a given base, we have multiple questions:
-- is it a repeat?
-- what type of repeat? (classification)
-  - TE / non-TE
-  - class I / class II
-  - order
-  - finer grain?
-- what is the consensus in the library?
-- what is the divergence to consensus?
-- what is the orientation?
-- what is the position in the consensus
+A UCSC-style assembly track hub (also loadable in IGV) containing:
 
-## Deliverable Specification
+| Track | What it shows |
+|---|---|
+| **repeatSummary** | consensus call per element — class, how many tools support it, how deeply they agree, and thick/thin geometry showing where they agree on boundaries |
+| **repeatSupport**, **repeatSupportFrac**, **repeatDivergence** | per-base signals at full resolution, not display-merged |
+| **toolUnique** | intervals called by exactly one tool — where the tools disagree most |
+| **repeat_\<tool\>** | each tool's full unmodified output, with its own class label preserved verbatim |
 
-describe here the format specification of the integrated track (it will be `.bed`)
+![Expected view at three test loci](report/igv_expected_view.png)
 
-### `.bed` track
+*Three contrasting loci. Thick block = the core every eligible tool agreed on;
+thin = full extent. Top: all three tools agree to superfamily. Middle: all three
+call a repeat but contradict each other on class (grey), so the agreed core is a
+57 bp sliver of a 13 kb feature. Bottom: a single-tool call.*
 
-UCSC eventually convert any track to bed for display, so Hiram recommend to focus on delivering a bed track.
+## Status
 
-The first 12 fields are constrained by the bed standard:
+Processed end to end on one assembly: `GCA_951799975.1` (*Gobius niger*, black
+goby), with RepeatModeler2, EDTA and Pantera. fastLTR is configured but has not
+been run, and ships as an empty placeholder track.
 
-1. `chr`: chromosome
-2. `start`: feature start  (0-based)
-3. `end`: feature end (1-based)
-4. `name`: unique instance name
-5. `score`: *undefined*
-6. `strand`: `+`, `-` or `.` if conflict
-7. `thickStart`: The starting position at which the feature is drawn thickly (for example, the start codon in gene displays). When there is no thick part, thickStart and thickEnd are usually set to the chromStart position.
-8. `thickEnd`: The ending position at which the feature is drawn thickly (for example the stop codon in gene displays).
-9. `itemRgb`: An RGB value of the form R,G,B (e.g. 255,0,0). If the track line itemRgb attribute is set to "On", this RBG value will determine the display color of the data contained in this BED line. NOTE: It is recommended that a simple color scheme (eight colors or less) be used with this attribute to avoid overwhelming the color resources of the Genome Browser and your Internet browser.
-10. `blockCount`: The number of blocks (exons) in the BED line.
-11. `blockSizes`: A comma-separated list of the block sizes. The number of items in this list should correspond to blockCount.
-12. `blockStarts`: A comma-separated list of block starts. All of the blockStart positions should be calculated relative to chromStart. The number of items in this list should correspond to blockCount.
+| | |
+|---|---|
+| Assembly | 870.6 Mb |
+| Covered by ≥1 tool | 431.3 Mb (49.5%) |
+| Summary features | 1,919,967 |
+| Single-tool intervals | 1,519,062 (91.1 Mb) |
+| Class labels observed / mapped | 135 / 135 |
+| Validation | `hubCheck` clean |
 
-The rest is up for grabs. The current order is irrelevant, the goal is to list the information we need to display.
+These numbers describe **what the tools said**, not what is true. See
+[Known limitations](docs/SPECIFICATION.md#9-known-limitations).
 
-13. `support`: number of methods supporting a repeat in this region `<int>`
-14. `methods`: list of methods supporting a repeat in this regions `<string>` (eg: `RM2;EDTA`)
-15. 
+## Quickstart
 
-## Input format requirement
+Requires Python ≥3.10 with pandas and numpy, plus the UCSC utilities
+`bedToBigBed`, `bedGraphToBigWig`, `bigBedInfo` and `hubCheck` on your `PATH`
+(from [hgdownload](https://hgdownload.soe.ucsc.edu/admin/exe/)).
 
-The goal is to be able to link each hit to a consensus in the library produced by each tool. This is straightforward using Repeatmasker output (`.out`), but EDTA outputs are more complex as it blends structural and homology calls. Tools using standalone `RepeatMasker` for annotation (e.g. `RepeatModeler2`, `Pantera`) will use a conversion script `.out --> .bed` while `EDTA` outputs will be converted to `.bed` with a custom convertor in order to account for structure-based annotation.
+Build a hub from the bundled 1.4 Mb test slice — takes about a second:
 
-As standard input for the integrated track, each method must provide a custom `.bed` with the following specification:
+```bash
+python -m vgptrack.cli build \
+    --assembly TESTASM \
+    --sizes tests/data/test.chrom.sizes \
+    --bed rm2=tests/data/rm2.bed.gz \
+    --bed edta=tests/data/edta.bed.gz \
+    --bed pantera=tests/data/pantera.bed.gz \
+    --out hub --description "test slice"
+```
 
-| # | Column | Description |
-|---|--------|-------------|
-| 1 | `chrom` | Query sequence name (scaffold/chromosome). |
-| 2 | `chromStart` | Match start, 0-based (RepeatMasker query begin − 1). |
-| 3 | `chromEnd` | Match end, half-open (RepeatMasker query end). |
-| 4 | `name` | Repeat element name (RepeatMasker "matching repeat"). |
-| 5 | `score` | Smith–Waterman score, capped to the BED-legal range 0–1000. Use `SW_score` (col 7) for the true value. |
-| 6 | `strand` | `+` for `+`, `-` for RepeatMasker's `C` (complement). |
-| 7 | `SW_score`* | Raw Smith–Waterman alignment score (uncapped). |
-| 8 | `perc_div`* | Percent substitutions vs. the consensus. |
-| 9 | `perc_del`* | Percent bases deleted vs. the consensus. |
-| 10 | `perc_ins`* | Percent bases inserted vs. the consensus. |
-| 11 | `query_left`* | Bases left in the query after the match (RepeatMasker parenthesized value, unwrapped). |
-| 12 | `repeat_class_family` | Repeat class/family (e.g. `LINE/L1`, `LTR/ERV1`). |
-| 13 | `repeat_start`* | Match start position in the repeat consensus. |
-| 14 | `repeat_end`* | Match end position in the repeat consensus. |
-| 15 | `repeat_left`* | Bases left in the repeat consensus after the match (parenthesized value, unwrapped). |
-| 16 | `ID` | copy ID, linking fragments of a single interrupted insertion. |
+Expected output: `9,350 segments over 1,025,484 bp`, `3,739 display features`,
+`hubCheck clean`.
 
-\*`RepeatMasker`-specific fields (structure-based annotations do not have such information), `NA` otherwise.
+On a real assembly, add `--alias` (tools use different sequence-naming
+authorities, so this is effectively required) and `--twobit`:
 
-### Input format conversion scripts
+```bash
+python -m vgptrack.cli build \
+    --assembly GCA_951799975.1 \
+    --sizes GCA_951799975.1.chrom.sizes \
+    --alias GCA_951799975.1.chromAlias.txt \
+    --bed rm2=rm2.bed --bed edta=edta.bed --bed pantera=pantera.bed \
+    --out hub --description "Gobius niger (black goby)" \
+    --twobit https://hgdownload.soe.ucsc.edu/hubs/GCA/951/799/975/GCA_951799975.1/GCA_951799975.1.2bit
+```
 
-Conversion scripts can be found in `scripts/`
+Adding a tool is a `--bed` argument plus a row in `config/tools.tsv`. Tools in
+the manifest without a `--bed` become empty placeholder tracks automatically.
 
-#### `rmout2bed.py`
+### Viewing in IGV
 
-Convert `RepeatMasker` `.out` file into `.bed`. Tab-delimited, BED6+10. The first line is a #-prefixed header (skipped by bedtools). Coordinates are converted from RepeatMasker's 1-based, fully-closed intervals to BED's 0-based, half-open convention (chromStart = query_begin − 1, chromEnd = query_end). Records that would produce a zero-length or negative interval (chromEnd ≤ chromStart) are dropped, and malformed lines (fewer than 15 fields) are skipped; both are reported as counts to stderr.
+```bash
+python -m vgptrack.cli session --hub hub/GCA_951799975.1 --out igv_session.xml
+```
 
-| # | Column | Description |
-|---|--------|-------------|
-| 1 | `chrom` | Query sequence name (scaffold/chromosome). |
-| 2 | `chromStart` | Match start, 0-based (RepeatMasker query begin − 1). |
-| 3 | `chromEnd` | Match end, half-open (RepeatMasker query end). |
-| 4 | `name` | Repeat element name (RepeatMasker "matching repeat"). |
-| 5 | `score`* | Smith–Waterman score, capped to the BED-legal range 0–1000. Use `SW_score` (col 7) for the true value. |
-| 6 | `strand` | `+` for `+`, `-` for RepeatMasker's `C` (complement). |
-| 7 | `SW_score` | Raw Smith–Waterman alignment score (uncapped). |
-| 8 | `perc_div` | Percent substitutions vs. the consensus. |
-| 9 | `perc_del` | Percent bases deleted vs. the consensus. |
-| 10 | `perc_ins` | Percent bases inserted vs. the consensus. |
-| 11 | `query_left` | Bases left in the query after the match (RepeatMasker parenthesized value, unwrapped). |
-| 12 | `repeat_class_family` | Repeat class/family (e.g. `LINE/L1`, `LTR/ERV1`). |
-| 13 | `repeat_start` | Match start position in the repeat consensus. |
-| 14 | `repeat_end` | Match end position in the repeat consensus. |
-| 15 | `repeat_left` | Bases left in the repeat consensus after the match (parenthesized value, unwrapped). |
-| 16 | `RM_ID` | RepeatMasker element ID, linking fragments of a single interrupted insertion. |
+writes an IGV session plus a genome descriptor that streams the reference from
+UCSC GenArk, so there is nothing to download. See [docs/TESTING.md](docs/TESTING.md).
 
-> Repeat-consensus coordinate order in the source `.out` depends on strand; the script reorders columns 13–15 to repeat_start, repeat_end, repeat_left according to strand.
+## How it works
 
-> Parenthesized RepeatMasker values ((n), meaning "remaining") are stripped to plain integers in columns 11 and 15.
+1. **Ingest** — each tool provides a standardized BED16
+   ([INPUT_FORMAT.md](docs/INPUT_FORMAT.md)); coordinates
+   validated against `chrom.sizes`, sequence names reconciled via chromAlias.
+2. **Harmonize** — each tool's class label is mapped onto a shared hierarchy via
+   `config/class_map.tsv`. The tool's original label is always preserved.
+3. **Segment** — per-base state, run-length encoded. Support counts **distinct
+   tools**, carried as a bitmask, so one tool's overlapping calls cannot inflate
+   it.
+4. **Aggregate into elements** — boundary disagreement is absorbed into BED12
+   thick/thin geometry rather than merged away.
+5. **Build tracks** — bigBed/bigWig via the UCSC utilities, validated with
+   `hubCheck`.
 
-> Only columns 1–6 are standard BED6; colums 7–16 are extra RepeatMasker fields carried through and are ignored by standard BED tools.
+Full detail in [docs/SPECIFICATION.md](docs/SPECIFICATION.md).
 
-#### `XXX` EDTA to `.bed` (to add)
+## Repository layout
 
-Convert `EDTA` outputs (gff3?) into `.bed`  -- please add description of EDTA specific fields here.
+```
+vgptrack/          pipeline package
+  ingest.py        BED16 reading, validation, class harmonization
+  segment.py       per-base segmentation and agreement resolution
+  summary.py       element aggregation and the summary track
+  hub.py           per-tool tracks, discordance track, hub files
+  bigfiles.py      UCSC utility wrappers
+  igvsession.py    IGV session/genome writers
+  cli.py           command-line driver
+config/            tool manifest, class vocabulary, colour palette  (data, not code)
+docs/              input format (normative), specification, testing guide, design notes
+tests/data/        1.4 Mb slice for a runnable end-to-end example
+scripts/           tool-output → BED16 converters
+report/, qc/       concordance figures and ingest QC from the goby run
+```
 
-| # | Column | Description |
-|---|--------|-------------|
-| 1 | `chrom` | Query sequence name (scaffold/chromosome). |
-| 2 | `chromStart` | Match start, 0-based (RepeatMasker query begin − 1). |
-| 3 | `chromEnd` | Match end, half-open (RepeatMasker query end). |
-| 4 | `name` | Repeat element name (RepeatMasker "matching repeat"). |
-| 5 | `score`* | Smith–Waterman score, capped to the BED-legal range 0–1000. Use `SW_score` (col 7) for the true value. |
-| 6 | `strand` | `+` for `+`, `-` for RepeatMasker's `C` (complement). |
-| 7 | `SW_score`* | Raw Smith–Waterman alignment score (uncapped). |
-| 8 | `perc_div`* | Percent substitutions vs. the consensus. |
-| 9 | `perc_del`* | Percent bases deleted vs. the consensus. |
-| 10 | `perc_ins`* | Percent bases inserted vs. the consensus. |
-| 11 | `query_left`* | Bases left in the query after the match (RepeatMasker parenthesized value, unwrapped). |
-| 12 | `repeat_class_family` | Repeat class/family (e.g. `LINE/L1`, `LTR/ERV1`). |
-| 13 | `repeat_start`* | Match start position in the repeat consensus. |
-| 14 | `repeat_end`* | Match end position in the repeat consensus. |
-| 15 | `repeat_left`* | Bases left in the repeat consensus after the match (parenthesized value, unwrapped). |
-| 16 | `TE_ID` | `<PLEASE UPDATE WITH EDTA DEFINITION OF TE_ID>` |
+`config/class_map.tsv` is **data, not code**. It carries a version header and a
+provisional-status marker; re-running against a new version rebuilds every track
+and nothing in the pipeline hardcodes a class name.
 
-\*`RepeatMasker`-specific fields (structure-based annotations do not have such information), `NA` otherwise.
+## Contributing
 
-## Integration tool
+Most useful right now:
 
-describe how the script that will produce the integrated track work.
+- **A curated truth set** for any vertebrate assembly, so the output can finally
+  be benchmarked rather than merely described.
+- **Vocabulary review** — `config/class_map.tsv` maps 135 observed labels onto a
+  Wicker-style hierarchy. Mapping errors silently become false disagreement.
+- **Converters** for tools not yet supported (`scripts/`), producing the
+  [BED16 input format](docs/INPUT_FORMAT.md). EDTA and fastLTR are wanted.
+- **Design critique** — the open questions are collected in
+  [docs/DESIGN_NOTES.md](docs/DESIGN_NOTES.md).
+
+## Citing
+
+Please **don't** cite this yet. There is nothing benchmarked to cite. If it is
+useful in preparing work, link to this repository and state the commit.
+
+## License
+
+GPL-3.0. See [LICENSE](LICENSE).
