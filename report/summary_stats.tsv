@@ -1,0 +1,15 @@
+metric	value
+assembly_bp	870572126.0
+repeat_bp	431250929.0
+repeat_pct	49.54
+n_segments	4312179.0
+n_display_elements	1919967.0
+median_element_bp	116.0
+bp_support_1	91092344.0
+bp_support_2	151505621.0
+bp_support_3	188652964.0
+bp_full_support	202241693.0
+core_bp	188739755.0
+bp_no_conflict	294920093.0
+bp_class_conflict	86205853.0
+bp_superfamily_agreement	174052540.0

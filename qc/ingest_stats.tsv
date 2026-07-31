@@ -1,0 +1,4 @@
+tool_id	n_raw	n_bad_coord	n_unknown_seq	unknown_seq_names	n_clamped	n_hits	bp_naive	n_seq	n_labels	n_families	n_na_div	median_len	n_selfconflict	n_nested_inner	n_redundant	n_uncertain	pct_superfamily	pct_abstain
+edta	1394714	0	0	[]	0	1394714	372330088	279	37	3743	5172	185.0	413566	8383	90688	373	77.9	1.5
+pantera	1213581	0	0	[]	0	1213581	237633475	286	21	14325	0	107.0	5785	162	92410	0	8.6	29.0
+rm2	2274065	0	0	[]	0	2274065	449262256	292	77	15326	0	111.0	227537	12010	218111	0	40.1	39.1
