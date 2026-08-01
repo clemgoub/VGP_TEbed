@@ -61,7 +61,26 @@ add a mapping row for anything that appears there.
 
 Use `Unknown` (or `NA`) when the tool genuinely does not classify. This is
 treated as **abstention** — it neither deepens agreement nor creates conflict.
-Writing a guessed class instead manufactures false disagreement.
+
+**Abstain wherever your tool abstains. Never fill in a plausible class.** A
+guessed label cuts both ways, and the second case is the dangerous one:
+
+- Guess wrong and you manufacture **false disagreement** — the locus reports a
+  conflict that no tool actually raised.
+- Guess *right* and you manufacture **false agreement** — the locus reports
+  consensus at a depth only one tool truly asserted, and `agreeDepth` reads
+  deeper than the evidence supports.
+
+False agreement is worse because it looks like a result. By the time a label
+reaches segmentation it is indistinguishable from a tool's own call, so nothing
+downstream can flag it. If a coarse label is all your tool supports, emit the
+coarse label: `repeat:tandem` with three tools abstaining below it is an honest
+statement about what is known.
+
+Where a size- or length-based convention exists that users may still want,
+expose it as an **opt-in flag**, not a default, and say in the flag's help what
+it does to agreement depth. `scripts/fastan2bed.py --classify-period` is the
+worked example.
 
 **`hit_id` (col 16)** links fragments of one interrupted insertion. It must be
 unique per tool per assembly. EDTA additionally encodes provenance here

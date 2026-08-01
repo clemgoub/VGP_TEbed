@@ -154,6 +154,37 @@ Agreement is therefore reported as a **depth** on the hierarchy:
 means every tool classified and they contradict each other; the second means
 nobody ventured a class.
 
+### Only assert what the tool asserted
+
+Agreement depth is only meaningful if every vote is a claim the tool actually
+made. A converter that fills in a plausible subclass the tool never reported
+does not add information — it manufactures a vote, and that vote is then scored
+as agreement or conflict against tools that genuinely classified. The result is
+a confident-looking consensus resting on an inference the pipeline made about
+itself.
+
+This is why abstention is a first-class value in this design (`repeat`, class id
+0) rather than something to be filled in. **A converter should abstain wherever
+its tool abstains.**
+
+The live case is FasTAN. It detects tandem arrays but does not classify them as
+satellite vs simple vs low-complexity, so `scripts/fastan2bed.py` emits the
+generic label `tandem` by default. The conventional size cut (period ≤ 6 →
+`Simple_repeat`, > 6 → `Satellite`) is real and widely used, but it is *our*
+inference, not FasTAN's call, so it is available only behind
+`--classify-period`.
+
+> **If you enable `--classify-period`,** the summary track reports class
+> agreement between FasTAN and RepeatModeler2 at a subclass FasTAN never
+> asserted. Measured on the three-chromosome slice, over segments whose
+> boundaries are identical in both builds: **7.84 Mb of synthetic agreement**
+> (inferred subclass happens to match, scored as consensus) and **1.25 Mb of
+> synthetic conflict** (it happens to differ, scored as an inter-tool dispute).
+> Mean `agreeDepth` moves 3.135 → 3.207. Nothing downstream can detect this,
+> because by that point the inference is indistinguishable from a tool's own
+> call. Use the flag only if you want the size-based split in the browser and
+> accept that the agreement depth is then partly synthetic.
+
 ### Self-conflict
 
 A single tool overlapping itself with incompatible classifications is graded by
@@ -269,10 +300,22 @@ in the QC table.
   RepeatMasker machinery, which inflates their pairwise agreement (J = 0.70)
   relative to either against Pantera (J ≈ 0.53).
 - **Divergence is not comparable between tools** — each reports its own estimate
-  against its own consensus.
+  against its own consensus. The aggregate `repeatDivergence.bw` averages only
+  tools whose divergence *is* consensus-based (`Tool.divergence_is_consensus`);
+  a tool measuring a different quantity is excluded from the mean and shows its
+  value, self-labelled, on its own per-tool track. FasTAN is the current case:
+  its figure is unit-to-unit divergence within an array, not age-proxy
+  divergence from a library.
+- **Classification depth can be inflated by converter flags.** `agreeDepth`
+  assumes every vote is a claim the tool made. `fastan2bed.py
+  --classify-period` breaks that assumption by inferring satellite/simple from
+  period size, producing agreement at a subclass FasTAN never asserted. It is
+  off by default; see §5, "Only assert what the tool asserted".
 - **Discovery has not saturated.** One tool finds 320 Mb on average, two find
-  401 Mb, three find 431 Mb. The curve is still climbing; a fourth tool would
-  add more.
+  401 Mb, three find 431 Mb. The curve is still climbing. Adding FasTAN as a
+  fourth tool bore this out: on the three-chromosome slice it contributed
+  7.07 Mb that no TE tool called, and more than tripled the tandem-classified
+  fraction (3.19 → 11.03 Mb).
 - **Boundaries rarely agree**: only 32–39% of calls have a start within 10 bp of
   the nearest start in another tool (median offset 50–64 bp). This is why the
   thick/thin geometry exists.

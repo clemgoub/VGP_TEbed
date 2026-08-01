@@ -53,6 +53,21 @@ repeat_class_family
     Simple_repeat, period > 6 -> Satellite). That convention is real and
     widely used, but it is OUR inference, not FasTAN's call -- hence opt-in.
 
+    *** Consequence of enabling it, measured. *** Segmentation cannot tell an
+    inferred subclass from one a tool actually reported, so it scores ours as a
+    real vote -- in BOTH directions. On the three-chromosome goby slice, over
+    segments whose boundaries are identical in both builds, among bases where
+    FasTAN votes:
+
+        agreement deepened (synthetic consensus)   7.84 Mb
+        agreement shallowed                        1.25 Mb
+        new conflict, asserted by no tool          1.25 Mb
+        unchanged                                  9.22 Mb
+
+    Mean agreeDepth moves 3.135 -> 3.207 genome-wide. Turn the flag on only if
+    you want the size split in the browser and accept that the reported
+    agreement depth is then partly synthetic. See docs/SPECIFICATION.md §5.
+
 name    `tandem_p<period>` so the period is visible on mouseover in every
         track, whether or not --classify-period was used.
 
@@ -154,8 +169,14 @@ def main():
                    help="output BED16 (default: stdout)")
     p.add_argument("--classify-period", action="store_true",
                    help="infer Simple_repeat (period<=6) / Satellite (>6) from "
-                        "period. OFF by default: this is our inference, not a "
-                        "FasTAN call.")
+                        "period size. OFF by default, and think before turning "
+                        "it on: FasTAN never makes this call, so the summary "
+                        "track scores our inference as if it were a tool's own "
+                        "vote. Measured on 3 goby chromosomes: 7.84 Mb of "
+                        "synthetic class AGREEMENT plus 1.25 Mb of synthetic "
+                        "CONFLICT, neither backed by evidence, and nothing "
+                        "downstream can detect it. See docs/SPECIFICATION.md "
+                        "section 5.")
     p.add_argument("--no-divergence", action="store_true",
                    help="emit NA for perc_div instead of (1000-identity)/10. "
                         "Use if you want the divergence track to carry only "

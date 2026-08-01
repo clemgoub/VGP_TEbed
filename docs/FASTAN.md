@@ -26,11 +26,44 @@ coordinates and score byte-identical to the input.
 
 **Classification.** By default every record gets the single label `tandem`,
 which `config/class_map.tsv` maps to `repeat:tandem`. FasTAN detects arrays; it
-does not call them satellite vs simple vs low-complexity. Inferring a subclass
-from period size would invent a classification FasTAN never made, and the
-summary track would then report class *agreement* or *conflict* on evidence
-that does not exist. `--classify-period` opts in to the conventional
-`period<=6 -> Simple_repeat, >6 -> Satellite` cut when you want it.
+does not call them satellite vs simple vs low-complexity.
+
+> ### Read this before using `--classify-period`
+>
+> The flag applies the conventional size cut — period ≤ 6 → `Simple_repeat`,
+> > 6 → `Satellite`. The convention is real and widely used. **But FasTAN never
+> makes that call: the inference is ours.**
+>
+> The consequence lands in the summary track, not in FasTAN's own track. Once a
+> subclass is written into the BED16, segmentation cannot tell it apart from a
+> classification a tool genuinely reported.
+>
+> Measured on the three-chromosome slice, comparing the two builds over the
+> 891,768 segments whose boundaries are identical in both — among bases where
+> FasTAN votes:
+>
+> | effect of the flag | bp |
+> |---|---|
+> | agreement **deepened** (synthetic consensus) | 7.84 Mb |
+> | agreement **shallowed** | 1.25 Mb |
+> | **new conflict** raised that no tool asserted | 1.25 Mb |
+> | unchanged | 9.22 Mb |
+>
+> So the flag manufactures both outcomes: 7.84 Mb where the inferred subclass
+> happens to match RepeatModeler2 and is scored as consensus, and 1.25 Mb where
+> it happens to differ and is scored as a genuine inter-tool dispute. Neither is
+> evidence. Genome-wide, mean `agreeDepth` moves 3.135 → 3.207 and bases at
+> depth ≥ 3 move 52.63 → 59.22 Mb.
+>
+> Nothing downstream can detect this, and no QC file will flag it.
+>
+> Default (`repeat:tandem`, everyone else abstaining below it) is an honest
+> statement of what is known. Enable the flag only if you specifically want the
+> size split visible in the browser and you accept that the reported agreement
+> depth is then partly synthetic.
+>
+> Background: `docs/SPECIFICATION.md` §5 "Only assert what the tool asserted",
+> and `docs/INPUT_FORMAT.md` §2 on abstention.
 
 **Library fields.** `SW_score`, `perc_del`, `perc_ins` and the three consensus
 coordinates are emitted as `NA`, not `0`. FasTAN does no library alignment, so
@@ -88,6 +121,9 @@ the hub. It now reads the manifest.
 From the repo root, with the UCSC tools on `PATH`:
 
 ```bash
+# No --classify-period: FasTAN's arrays stay `repeat:tandem`, which is what
+# FasTAN actually asserted. Adding the flag inflates summary-track agreement
+# depth -- see the warning in section 1 before you change this line.
 python scripts/fastan2bed.py /path/to/fGobNig-tan.bed -o smoke/fastan.bed
 
 python -m vgptrack.cli build \
