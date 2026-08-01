@@ -141,10 +141,19 @@ def read_bed16(path, tool_id: str, sizes: dict, alias: dict | None = None,
     return df, stats
 
 
+# Tools whose calls come from detecting sequence structure directly rather than
+# from matching a consensus library. Labelling these "homology" on the mouseover
+# asserts a library comparison that never happened.
+_NON_HOMOLOGY_TOOLS = {"fastan": "tandem array structure"}
+
+
 # EDTA encodes call provenance in its ID column: TE_homo_* are homology-based,
 # TE_struc_* and LTRRT_* are structural. This is real information the other
 # tools do not provide, so it is preserved rather than discarded.
 def call_evidence(hit_id: pd.Series, tool_id: str) -> pd.Series:
+    if tool_id in _NON_HOMOLOGY_TOOLS:
+        return pd.Series([_NON_HOMOLOGY_TOOLS[tool_id]] * len(hit_id),
+                         index=hit_id.index, dtype="category")
     if tool_id != "edta":
         return pd.Series(["homology"] * len(hit_id), index=hit_id.index, dtype="category")
     s = hit_id.fillna("")

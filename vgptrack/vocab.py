@@ -56,6 +56,24 @@ class Tool:
     ran: bool
     notes: str = ""
     bit: int = 0  # assigned by ToolSet
+    rm_fields_raw: str = ""
+
+    @property
+    def divergence_is_consensus(self) -> bool:
+        """Is this tool's perc_div divergence FROM A LIBRARY CONSENSUS?
+
+        The genome-wide repeatDivergence track averages this across tools, so
+        every contributor must be measuring the same thing. RepeatMasker-style
+        divergence (copy vs consensus) is an age proxy. FasTAN's is unit-to-unit
+        divergence within a tandem array -- an array-homogeneity measure that is
+        not comparable and would make the mean uninterpretable.
+
+        `mixed` counts as yes: EDTA's homology calls carry genuine consensus
+        divergence and its structural calls carry NA, so nothing incomparable
+        enters the mean. Tools that are not consensus-based still show their
+        divergence on their own per-tool track, where it is labelled.
+        """
+        return self.rm_fields_raw.strip().lower() in ("yes", "mixed")
 
 
 # Which canonical classes each scope is capable of calling. A tool only enters
@@ -82,7 +100,8 @@ class ToolSet:
             ts.tools[r["tool_id"]] = Tool(
                 tool_id=r["tool_id"], short_label=r["short_label"],
                 long_label=r["long_label"], version=r["version"], scope=r["scope"],
-                rm_fields=r["rm_fields"].lower() == "yes", library=r["library"],
+                rm_fields=r["rm_fields"].lower() == "yes",
+                rm_fields_raw=r["rm_fields"], library=r["library"],
                 color=r["color"], priority=int(r["priority"]),
                 ran=r["ran"].lower() == "yes", notes=r.get("notes", ""), bit=bit,
             )

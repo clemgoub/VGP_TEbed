@@ -363,7 +363,13 @@ def build_pertool_bed(hits: pd.DataFrame, tool, palette) -> pd.DataFrame:
         "itemRgb": rgb,
         "rawClass": h.repeat_class_family.fillna("none").to_numpy(),
         "canonicalClass": cons,
-        "divergence": fmt("perc_div"),
+        # The schema calls this "divergence from family consensus", which is
+        # true for library-based tools only. A tool measuring something else
+        # says so in the value, since one .as is shared by every per-tool track.
+        "divergence": (fmt("perc_div") if tool.divergence_is_consensus
+                       else np.char.add(
+                           fmt("perc_div"),
+                           " (unit-to-unit within array, NOT vs consensus)")),
         "deletion": fmt("perc_del") if "perc_del" in h else "not reported",
         "insertion": fmt("perc_ins") if "perc_ins" in h else "not reported",
         "consensusRange": crange,
