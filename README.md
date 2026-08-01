@@ -64,36 +64,47 @@ call a repeat but contradict each other on class (grey), so the agreed core is a
 ## Status
 
 Processed end to end on one assembly: `GCA_951799975.1` (*Gobius niger*, black
-goby), with RepeatModeler2, EDTA, fastLTR and FasTAN. Pantera is configured but
-has no published coordinates yet, and ships as an empty placeholder track.
+goby), with all five tools: RepeatModeler2, EDTA, Pantera, FasTAN and fastLTR.
 
-Every input is rebuildable from public GenomeArk data — see
+Four of the five inputs are rebuildable from public GenomeArk data — see
 [docs/FASTLTR.md](docs/FASTLTR.md) and [docs/EDTA.md](docs/EDTA.md) for the S3
-keys and the converters.
+keys and the converters. Pantera is the exception: GenomeArk publishes its TE
+*library* (`downstream_analyses/repeats/panteraGA/`, 196 consensus sequences)
+but not the RepeatMasker annotation, so `inputs/pantera.bed` currently comes
+from a locally supplied BED16 — see [docs/PANTERA.md](docs/PANTERA.md).
 
 | | |
 |---|---|
 | Assembly | 870.6 Mb |
-| Covered by ≥1 tool | 461.7 Mb (53.0%) |
-| Summary segments | 3,827,002 |
-| Display features | 1,900,653 |
-| Classified `repeat:TE*` / `repeat:tandem*` | 336.3 Mb / 67.1 Mb |
-| Conflicted | 95.7 Mb |
-| Mean divergence (over 424.6 Mb) | 12.18% |
+| Covered by ≥1 tool | 463.9 Mb (53.3%) |
+| Summary segments | 4,662,823 |
+| Display features | 1,943,041 |
+| Classified `repeat:TE*` / `repeat:tandem*` | 351.7 Mb / 61.3 Mb |
+| Conflicted | 132.1 Mb |
+| Mean divergence (over 427.1 Mb) | 12.17% |
 | Validation | `hubCheck` clean |
 
 Per-tool coverage, and the fraction no other tool calls:
 
 | tool | covered | unique |
 |---|---|---|
-| RepeatModeler2 | 409.0 Mb | 83.7 Mb |
-| EDTA | 322.3 Mb | 16.4 Mb |
-| FasTAN | 96.3 Mb | 32.8 Mb |
+| RepeatModeler2 | 409.0 Mb | 60.5 Mb |
+| EDTA | 322.3 Mb | 14.3 Mb |
+| Pantera | 229.1 Mb | 2.2 Mb |
+| FasTAN | 96.3 Mb | 32.5 Mb |
 | fastLTR | 10.6 Mb | 0.04 Mb |
 
-fastLTR is a specialist caller and behaves like one: it adds almost no
-territory, but 98.1% of what it calls falls on loci the summary independently
-classifies as LTR — corroboration rather than extension.
+Adding tools in that order, the union saturates: 409.0 → 428.8 → 431.3 → 463.8
+→ 463.9 Mb. Only FasTAN adds substantial new territory (+32.5 Mb), because it
+is the only tandem-repeat specialist in the set. Pantera adds just 2.2 Mb of its
+own but has the lowest pairwise Jaccard among the three homology tools (0.542
+against RepeatModeler2, 0.526 against EDTA), so it contributes the most
+independent *support* per bp. fastLTR is a specialist caller and behaves like
+one: it adds almost no territory, but 98.1% of what it calls falls on loci the
+summary independently classifies as LTR — corroboration rather than extension.
+
+Support is broadly distributed: 110 Mb rests on a single tool, 136 Mb on two,
+187 Mb on three, 31 Mb on four, and 0.13 Mb on all five.
 
 These numbers describe **what the tools said**, not what is true. See
 [Known limitations](docs/SPECIFICATION.md#9-known-limitations).
@@ -113,8 +124,14 @@ python -m vgptrack.cli build \
     --bed rm2=tests/data/rm2.bed.gz \
     --bed edta=tests/data/edta.bed.gz \
     --bed pantera=tests/data/pantera.bed.gz \
+    --allow-missing \
     --out hub --description "test slice"
 ```
+
+`--allow-missing` is needed because the slice predates fastLTR and FasTAN: the
+manifest records `ran=yes` for them, and the build refuses by default to ship a
+documented tool as an empty track. See [Guard against a forgotten
+input](#guard-against-a-forgotten-input).
 
 Expected output: `9,350 segments over 1,025,484 bp`, `3,725 display features`,
 `hubCheck clean`.
@@ -143,6 +160,24 @@ python -m vgptrack.cli session --hub hub/GCA_951799975.1 --out igv_session.xml
 
 writes an IGV session plus a genome descriptor that streams the reference from
 UCSC GenArk, so there is nothing to download. See [docs/TESTING.md](docs/TESTING.md).
+
+### Guard against a forgotten input
+
+If `config/tools.tsv` records `ran=yes` for a tool but no `--bed` is given for
+it, `build` aborts:
+
+```
+error: config/tools.tsv records ran=yes for ['pantera'], but no --bed was given,
+       so they would ship as empty tracks and reduce the repeatSupport ceiling.
+```
+
+A tool omitted from the command line otherwise ships as a valid, empty,
+zero-feature bigBed — the hub builds, `hubCheck` passes, and the only symptom is
+a `repeatSupport` ceiling one lower than it should be. That is easy to miss, and
+[was missed once](docs/PANTERA.md#history). Resolve it by supplying the input,
+setting `ran=no` in the manifest if the tool genuinely has no coordinates for
+this assembly, or passing `--allow-missing` to build anyway (which downgrades
+the error to a warning).
 
 ## How it works
 

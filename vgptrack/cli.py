@@ -51,7 +51,11 @@ def build(args: argparse.Namespace) -> int:
         class_map_path=args.class_map, tools_path=args.tools)
 
     # The manifest may claim ran=yes; the BED files on THIS command line are the
-    # authority for what actually ran in THIS build.
+    # authority for what actually ran in THIS build. But a tool the manifest
+    # documents as having produced hits, omitted from --bed, is far more likely
+    # a forgotten input than a deliberate exclusion: it silently ships as a
+    # zero-feature track and lowers the support ceiling everywhere. Name it.
+    regressed = [t.tool_id for t in tools if t.ran and t.tool_id not in beds]
     for t in tools:
         t.ran = t.tool_id in beds
     ran = tools.subset([t.tool_id for t in tools if t.ran])
@@ -59,6 +63,16 @@ def build(args: argparse.Namespace) -> int:
         sys.exit("error: no --bed inputs given; nothing to build")
     _log(f"{len(ran)} tool(s) ran: {', '.join(ran.ids)}; "
          f"{len(tools) - len(ran)} placeholder(s)")
+    if regressed and not args.allow_missing:
+        sys.exit(f"error: {args.tools} records ran=yes for {regressed}, but no "
+                 f"--bed was given, so they would ship as empty tracks and\n"
+                 f"       reduce the repeatSupport ceiling. Supply the input(s), "
+                 f"set ran=no in the manifest if the tool genuinely has no\n"
+                 f"       coordinates for this assembly, or pass "
+                 f"--allow-missing to build anyway.")
+    if regressed:
+        _log(f"WARNING: building without {regressed} despite ran=yes in "
+             f"{args.tools}; they ship as empty tracks")
     _log(f"ingested {len(hits):,} hits")
     stats.to_csv(os.path.join(args.work, "ingest_stats.tsv"), sep="\t", index=False)
     if len(unmapped):
@@ -198,6 +212,9 @@ def main(argv=None) -> int:
     b.add_argument("--out", default="hub", help="hub root (default: hub)")
     b.add_argument("--work", default="work", help="intermediate directory")
     b.add_argument("--email", default="", help="contact address for hub.txt")
+    b.add_argument("--allow-missing", action="store_true",
+                   help="build even if a tool with ran=yes in the manifest has "
+                        "no --bed (it ships as an empty track)")
     b.add_argument("--description", default="", help="species/assembly description")
     b.add_argument("--twobit", help="path/URL to the assembly .2bit for UCSC")
     b.add_argument("--tools", default="config/tools.tsv")
