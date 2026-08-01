@@ -97,7 +97,7 @@ python -m vgptrack.cli build \
     --out hub --description "test slice"
 ```
 
-Expected output: `9,350 segments over 1,025,484 bp`, `3,739 display features`,
+Expected output: `9,350 segments over 1,025,484 bp`, `3,725 display features`,
 `hubCheck clean`.
 
 On a real assembly, add `--alias` (tools use different sequence-naming

@@ -27,7 +27,22 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from .vocab import LEVELS, split_path
+from .vocab import LEVELS, SCOPE_ELIGIBILITY, split_path
+
+
+def _in_scope(tool, path: str) -> bool:
+    """Does `path` fall inside `tool`'s declared detection scope?
+
+    Same generous test `ToolSet.eligible` applies to the support denominator --
+    at, above, or below any class in the scope -- but usable on a bare Tool, so
+    `resolve_agreement` can gate classification votes without a ToolSet in hand.
+    Keep the two in step: they answer the same question, one for the
+    denominator and one for the class vote.
+    """
+    for allowed in SCOPE_ELIGIBILITY.get(tool.scope, ("repeat",)):
+        if path.startswith(allowed) or allowed.startswith(path):
+            return True
+    return False
 
 # Sentinel class id meaning "this tool asserted nothing beyond `repeat`".
 ABSTAIN = 0
@@ -244,6 +259,21 @@ def resolve_agreement(seg: pd.DataFrame, tools, registry) -> pd.DataFrame:
     they do is the consensus. Abstentions (class id 0 = `repeat`) never break
     agreement -- they are excluded from the comparison at every depth, which is
     what stops RepeatModeler's 39% Unknown from demoting well-supported loci.
+
+    Scope is honoured the same way. A scope-restricted tool votes on
+    classification only where the locus falls inside its scope; outside it the
+    tool has no standing to classify, exactly as `add_eligibility` gives it no
+    place in the support denominator there. Without this, FasTAN's `tandem` at a
+    locus three TE tools call LTR is scored as a genuine TE-vs-tandem dispute
+    and collapses the consensus to bare `repeat` -- 20.7 Mb of the goby genome
+    when FasTAN was added. `tandem` is a real assertion, not an abstention, so
+    the abstention rule above cannot absorb it; the scope test is what does.
+
+    Resolution therefore runs twice: once over unrestricted tools to establish
+    what kind of locus this is, then again admitting each restricted tool only
+    where that provisional answer lies in its scope. Where the unrestricted
+    tools say nothing, a restricted tool is admitted unconditionally -- it is
+    then the only evidence available.
     """
     n = len(seg)
     if n == 0:
@@ -253,15 +283,75 @@ def resolve_agreement(seg: pd.DataFrame, tools, registry) -> pd.DataFrame:
     cls_cols = np.stack([seg[f"cls_{t}"].to_numpy(np.int32) for t in tool_ids])  # (T, n)
     votes = np.stack([(seg.vote_mask.to_numpy() >> t.bit & 1).astype(bool) for t in tools])
     informative = votes & (cls_cols != ABSTAIN)
-    n_inf = informative.sum(axis=0)
-
-    consensus = np.zeros(n, dtype=np.int32)          # id of consensus path
-    agree_depth = np.zeros(n, dtype=np.int8)         # 0 = none beyond `repeat`
-    conflict_depth = np.full(n, -1, dtype=np.int8)   # -1 = no conflict
 
     prefix = registry.prefix_at   # (n_paths, maxd)
     pdepth = registry.depth       # (n_paths,)
+
+    def _cascade(inf, cons, ad, cd, still):
+        _cascade_body(inf, cls_cols, prefix, pdepth, maxd, cons, ad, cd, still)
+
+    def _resolve(inf):
+        """Run the depth cascade over the given informative mask."""
+        consensus = np.zeros(n, dtype=np.int32)
+        agree_depth = np.zeros(n, dtype=np.int8)
+        conflict_depth = np.full(n, -1, dtype=np.int8)
+        still = inf.sum(axis=0) > 0
+        _cascade(inf, consensus, agree_depth, conflict_depth, still)
+        return consensus, agree_depth, conflict_depth
+
+    # Pass 1 -- unrestricted tools only, to establish the kind of locus.
+    unrestricted = np.array([t.scope == "general_homology" for t in tools])
+    if unrestricted.any() and not unrestricted.all():
+        prov_inf = informative & unrestricted[:, None]
+        prov_consensus, _, _ = _resolve(prov_inf)
+        # Where the unrestricted tools said nothing, anchor on the restricted
+        # voter making the DEEPEST assertion. Admitting all of them instead
+        # lets tools in disjoint scopes cross-veto: EDTA calling CACTA and
+        # FasTAN calling `tandem` at the same locus scored as a dispute and
+        # collapsed 5.6 Mb of specific TE classification to bare `repeat`,
+        # even though a tandem array overlapping a TE is ordinary biology and
+        # neither tool can adjudicate the other's question. Depth is the
+        # tiebreak because identifying a TE superfamily is a stronger claim
+        # than reporting that an array exists; a tool that asserts more
+        # specifically anchors, and shallower out-of-scope votes are gated.
+        no_prov = prov_inf.sum(axis=0) == 0
+        if no_prov.any():
+            restricted_inf = informative & ~unrestricted[:, None]
+            depths = np.where(restricted_inf, pdepth[cls_cols], -1)
+            deepest = np.argmax(depths, axis=0)
+            fallback = cls_cols[deepest, np.arange(n)]
+            prov_consensus = np.where(no_prov & (depths.max(axis=0) > 0),
+                                      fallback, prov_consensus)
+        prov_path = np.array(registry.paths, dtype=object)[prov_consensus]
+        # Pass 2 -- admit each restricted tool only where its scope allows.
+        uniq, inv = np.unique(prov_path.astype(str), return_inverse=True)
+        for i, t in enumerate(tools):
+            if unrestricted[i]:
+                continue
+            ok = np.array([_in_scope(t, p) for p in uniq], dtype=bool)[inv]
+            informative[i] &= ok
+
+    n_inf = informative.sum(axis=0)
+    consensus = np.zeros(n, dtype=np.int32)          # id of consensus path
+    agree_depth = np.zeros(n, dtype=np.int8)         # 0 = none beyond `repeat`
+    conflict_depth = np.full(n, -1, dtype=np.int8)   # -1 = no conflict
     still = n_inf > 0
+    _cascade(informative, consensus, agree_depth, conflict_depth, still)
+
+    seg = seg.copy()
+    seg["n_informative"] = n_inf.astype(np.int8)
+    seg["consensus_id"] = consensus
+    seg["agree_depth"] = agree_depth
+    seg["conflict_depth"] = conflict_depth
+    return seg
+
+
+def _cascade_body(informative, cls_cols, prefix, pdepth, maxd,
+                  consensus, agree_depth, conflict_depth, still):
+    """Descend the class hierarchy, deepening consensus until voters diverge.
+
+    Mutates `consensus`, `agree_depth` and `conflict_depth` in place.
+    """
     for d in range(maxd):
         # A tool participates at depth d only if its own path actually asserts
         # that many levels. Pantera saying "ClassII" while RepeatModeler says
@@ -283,13 +373,6 @@ def resolve_agreement(seg: pd.DataFrame, tools, registry) -> pd.DataFrame:
         agree_depth[deeper_ok] = d + 1
         # Keep descending while anyone still resolves deeper.
         still = deeper_ok
-
-    seg = seg.copy()
-    seg["n_informative"] = n_inf.astype(np.int8)
-    seg["consensus_id"] = consensus
-    seg["agree_depth"] = agree_depth
-    seg["conflict_depth"] = conflict_depth
-    return seg
 
 
 def segment_all(hits: "pd.DataFrame", tools, registry, sizes: dict,

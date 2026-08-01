@@ -174,6 +174,53 @@ Convert `EDTA` outputs (gff3?) into `.bed`  -- please add description of EDTA sp
 
 ---
 
+## Scope-gated classification votes
+
+A tool only votes on *classification* where the locus falls inside its declared
+`scope`. This is separate from the support denominator (`add_eligibility`),
+which had honoured scope from the start; agreement resolution did not, and the
+gap only became visible when the first narrow-scope tool was added.
+
+The failure mode: FasTAN calls `repeat:tandem`, which is a real assertion, not
+an abstention — so the existing abstention rule (class id 0 never breaks
+agreement) could not absorb it. At a locus three TE tools called
+`ClassI:LTR`, FasTAN's `tandem` registered as a genuine dispute at depth 1 and
+collapsed the consensus to bare `repeat`. Measured against a three-tool
+baseline on identical segment boundaries, this destroyed **20.7 Mb** of
+agreement and manufactured **14.4 Mb** of conflict, against 2.7 Mb gained.
+
+Resolution now runs in two passes:
+
+1. Resolve over unrestricted (`general_homology`) tools to establish what kind
+   of locus this is.
+2. Admit each scope-restricted tool's class vote only where that provisional
+   answer lies inside its scope.
+
+Where the unrestricted tools say nothing, the restricted voter making the
+**deepest** assertion anchors. Admitting all of them instead lets tools in
+disjoint scopes cross-veto — EDTA calling CACTA and FasTAN calling `tandem` at
+the same locus scored as a dispute, collapsing a further 5.6 Mb, though a
+tandem array overlapping a TE is ordinary biology and neither tool can
+adjudicate the other's question. Depth breaks the tie because naming a TE
+superfamily is a stronger claim than reporting that an array exists.
+
+After both changes, adding FasTAN is strictly additive: 6.85 Mb of agreement
+gained, none lost, no new conflicts. Genome-wide, sequence left unresolved at
+bare `repeat` falls 96.9 → 47.2 Mb, TE-classified sequence rises 313.5 → 357.3
+Mb, and tandem-classified sequence rises 52.9 → 57.6 Mb. The gate applies to EDTA too (`structural_te`), which was not the
+original intent but is the same principle: on the bundled test slice it
+deepens 9,087 bp of satellite sequence that a TE-only tool had been
+overriding, and shallows nothing.
+
+**Consequence for new tools.** A tool declaring a narrow `scope` in
+`config/tools.tsv` contributes existence evidence everywhere but classification
+evidence only within scope. Declaring `general_homology` for a specialist tool
+re-opens this bug. `_in_scope` in `segment.py` and `ToolSet.eligible` in
+`vocab.py` answer the same question for the class vote and the denominator
+respectively — keep them in step.
+
+---
+
 ## Open questions
 
 Carried forward from the brainstorming above; these are the most useful places
