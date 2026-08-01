@@ -104,6 +104,17 @@ def segment_sequence(hits_seq: pd.DataFrame, seq_len: int, tools, registry,
     self-conflict (depth 4) is treated as mild and keeps its vote.
     """
     n_tools = len(tools)
+    # Every per-base mask below is uint8, so bit 8 and above would be silently
+    # truncated -- support counts would look plausible and be wrong. ToolSet
+    # permits up to 64 tools, so this bound is the narrower one and must be
+    # checked here rather than at load time.
+    max_bit = max((t.bit for t in tools), default=-1)
+    if max_bit >= 8:
+        raise ValueError(
+            f"tool '{[t.tool_id for t in tools if t.bit == max_bit][0]}' has "
+            f"bit {max_bit}, but the per-base masks are uint8 (max bit 7). "
+            "Widen mask/vote_mask/te_mask/nonte_mask/struct_mask/eligible_mask "
+            "to uint16 or uint64 before adding a 9th tool.")
     mask = np.zeros(seq_len, dtype=np.uint8)
     vote_mask = np.zeros(seq_len, dtype=np.uint8)
     te_mask = np.zeros(seq_len, dtype=np.uint8)
@@ -114,7 +125,14 @@ def segment_sequence(hits_seq: pd.DataFrame, seq_len: int, tools, registry,
     # Per-tool class id at each base. Later hits overwrite earlier ones; to make
     # this deterministic, hits are painted in order of increasing class depth so
     # the most specific classification wins the base.
-    cls = np.zeros((n_tools, seq_len), dtype=np.int32)
+    # Rows are indexed by tool.bit, NOT by position in `tools`. Those differ
+    # whenever the running subset is not a prefix of the manifest -- e.g. a
+    # not-yet-run tool sitting above a running one, which is the normal state
+    # once tools are appended over time. Sizing this by len(tools) silently
+    # worked while the running tools happened to hold the lowest bits and then
+    # raised IndexError the moment they did not.
+    cls = np.zeros((max((t.bit for t in tools), default=-1) + 1, seq_len),
+                   dtype=np.int32)
 
     for tool in tools:
         g = hits_seq[hits_seq.tool_id == tool.tool_id]
@@ -149,8 +167,12 @@ def segment_sequence(hits_seq: pd.DataFrame, seq_len: int, tools, registry,
                            gv.chromEnd.to_numpy(np.int64)[sub],
                            np.full(int(sub.sum()), bit), target, "or")
 
-        # Divergence: mean over tools that report it.
-        gd = g[g.perc_div.notna()]
+        # Divergence: mean over tools reporting divergence FROM A CONSENSUS.
+        # A tool whose perc_div measures something else (FasTAN: unit-to-unit
+        # divergence within a tandem array) is excluded here so the genome-wide
+        # track stays a single interpretable quantity. Its divergence is still
+        # shown, labelled, on its own per-tool track.
+        gd = g[g.perc_div.notna()] if tool.divergence_is_consensus else g.iloc[:0]
         if not gd.empty:
             _paint(gd.chromStart.to_numpy(np.int64), gd.chromEnd.to_numpy(np.int64),
                    gd.perc_div.to_numpy(np.float32), div_sum, "add")

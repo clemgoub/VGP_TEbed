@@ -28,18 +28,30 @@ TRACKS = [
 ]
 
 # Per-tool tracks are discovered from the directory, so a hub built with a
-# different tool set still gets a complete session.
-TOOL_COLOURS = {
+# different tool set still gets a complete session. Colours and labels come from
+# the manifest rather than a table here: duplicating them meant a tool added to
+# config/tools.tsv rendered grey and id-labelled in IGV while being correct in
+# the hub. These fall back to the manifest-free defaults if it cannot be read,
+# because a session file is a convenience and must never block a build.
+_FALLBACK_COLOURS = {
     "rm2": "31,119,180", "edta": "227,26,28",
     "pantera": "51,160,44", "fastltr": "255,127,0",
 }
-
-# Display names matching the hub's shortLabels. A tool absent here falls back to
-# its id, so an unknown tool still gets a session entry.
-TOOL_LABELS = {
+_FALLBACK_LABELS = {
     "rm2": "RepeatModeler2", "edta": "EDTA",
     "pantera": "Pantera", "fastltr": "fastLTR",
 }
+
+
+def _tool_style(tools_tsv="config/tools.tsv"):
+    """(colours, labels) keyed by tool_id, read from the manifest."""
+    try:
+        from .vocab import ToolSet
+        ts = ToolSet.load(tools_tsv)
+    except Exception:
+        return dict(_FALLBACK_COLOURS), dict(_FALLBACK_LABELS)
+    return ({t.tool_id: t.color for t in ts},
+            {t.tool_id: t.short_label for t in ts})
 
 GENARK = ("https://hgdownload.soe.ucsc.edu/hubs/{a}/{b}/{c}/{d}/{acc}")
 
@@ -98,7 +110,8 @@ def _is_empty_bb(path: str) -> bool:
         return False
 
 
-def write_session(hubdir: str, path: str, accession: str, locus: str = "") -> str:
+def write_session(hubdir: str, path: str, accession: str, locus: str = "",
+                  tools_tsv: str = "config/tools.tsv") -> str:
     """IGV session XML referencing every track present in *hubdir*.
 
     Paths are absolute: IGV resolves session-relative paths against its own
@@ -106,6 +119,7 @@ def write_session(hubdir: str, path: str, accession: str, locus: str = "") -> st
     the session is opened from anywhere else.
     """
     hubdir = os.path.abspath(hubdir)
+    colours, labels = _tool_style(tools_tsv)
     present = [t for t in TRACKS if os.path.exists(os.path.join(hubdir, t[0]))]
     for fn in sorted(os.listdir(hubdir)):
         if fn.startswith("repeat_") and fn.endswith(".bb"):
@@ -113,10 +127,10 @@ def write_session(hubdir: str, path: str, accession: str, locus: str = "") -> st
             # A tool that did not run is present as a valid 0-feature bigBed so
             # that every assembly dir has identical filenames. Say so in the
             # track name, otherwise it reads in IGV as "this tool found nothing".
-            disp_name = TOOL_LABELS.get(tool, tool)
+            disp_name = labels.get(tool, tool)
             label = (f"{disp_name} (not run)"
                      if _is_empty_bb(os.path.join(hubdir, fn)) else disp_name)
-            present.append((fn, label, "SQUISHED", None, TOOL_COLOURS.get(tool)))
+            present.append((fn, label, "SQUISHED", None, colours.get(tool)))
 
     root = ET.Element("Session", genome=accession, version="8")
     if locus:
