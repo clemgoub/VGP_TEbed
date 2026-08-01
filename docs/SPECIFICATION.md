@@ -227,6 +227,17 @@ The hover answers, in order: **what it is → how many tools out of how many cou
 `repeatSupport` (1–3, mean 2.23) · `repeatSupportFrac` (0.33–1.0) ·
 `repeatDivergence` (0–59.2%, mean 12.2%).
 
+The two support signals render as bar charts. `repeatDivergence` renders as a
+**heatmap with inverted saturation** — full colour at 0% divergence fading to
+white at the 40% view limit, rather than the other way round. Divergence is a
+proxy for insertion age, so this makes recent, potentially active insertions
+the visually dense ones and lets ancient relics recede; a bar chart gave the
+opposite emphasis, since the tallest bars were the oldest copies. IGV's heatmap
+renderer has no alpha channel, so the fade is a ramp to white rather than to
+transparency. This is a session-level display choice only: the underlying
+bigWig is unchanged, and UCSC has no heatmap renderer for wiggle-type tracks,
+so the hub's `trackDb.txt` keeps the standard bar rendering.
+
 ### toolUnique.bb — `bigBed 9+4`
 
 Intervals called by **exactly one** tool: 1.52 M features, 91.1 Mb. Built from

@@ -18,14 +18,37 @@ import json
 import os
 import xml.etree.ElementTree as ET
 
-# filename, IGV track name, displayMode, (min,max) for bigWigs or None, colour
+# filename, IGV track name, displayMode, (min,max) for bigWigs or None, colour,
+# renderer. Renderer is None for feature tracks (IGV picks its own).
 TRACKS = [
-    ("repeatSummary.bb",     "Repeat Summary (consensus)", "EXPANDED", None,    None),
-    ("repeatSupport.bw",     "Tool Support (n tools)",     "FULL",     (0, 3),  "60,60,160"),
-    ("repeatSupportFrac.bw", "Support Fraction",           "FULL",     (0, 1),  "60,120,60"),
-    ("repeatDivergence.bw",  "Divergence %",               "FULL",     (0, 40), "160,60,60"),
-    ("toolUnique.bb",        "Single-tool Calls",          "SQUISHED", None,    None),
+    ("repeatSummary.bb",     "Repeat Summary (consensus)", "EXPANDED", None,    None,        None),
+    ("repeatSupport.bw",     "Tool Support (n tools)",     "FULL",     (0, 3),  "60,60,160", "BAR_CHART"),
+    ("repeatSupportFrac.bw", "Support Fraction",           "FULL",     (0, 1),  "60,120,60", "BAR_CHART"),
+    ("repeatDivergence.bw",  "Divergence %",               "FULL",     (0, 40), "160,60,60", "HEATMAP"),
+    ("toolUnique.bb",        "Single-tool Calls",          "SQUISHED", None,    None,        None),
 ]
+
+
+def _heatmap_scale(lim, colour: str) -> str:
+    """IGV ContinuousColorScale for divergence, saturated at the LOW end.
+
+    Format is ``ContinuousColorScale;min;max;minColour;maxColour``. The colour
+    stops are deliberately inverted relative to the intuitive reading: low
+    divergence gets the full colour and high divergence ramps to white.
+
+    Divergence measures decay from the family consensus, so a copy at 2% is a
+    recent, probably still-active insertion while one at 35% is an ancient
+    relic. Ramping saturation *down* as divergence rises therefore makes the
+    young insertions the visually dense ones, which is the signal worth
+    spotting when scanning a chromosome.
+
+    IGV's heatmap renderer has no alpha channel, so the fade is produced by
+    ramping to white rather than to transparent. That is visually equivalent
+    on IGV's white background but will read as solid white, not see-through,
+    if a track sits on a coloured backdrop.
+    """
+    lo, hi = lim
+    return f"ContinuousColorScale;{float(lo)};{float(hi)};{colour};255,255,255"
 
 # Per-tool tracks are discovered from the directory, so a hub built with a
 # different tool set still gets a complete session. Colours and labels come from
@@ -130,7 +153,7 @@ def write_session(hubdir: str, path: str, accession: str, locus: str = "",
             disp_name = labels.get(tool, tool)
             label = (f"{disp_name} (not run)"
                      if _is_empty_bb(os.path.join(hubdir, fn)) else disp_name)
-            present.append((fn, label, "SQUISHED", None, colours.get(tool)))
+            present.append((fn, label, "SQUISHED", None, colours.get(tool), None))
 
     root = ET.Element("Session", genome=accession, version="8")
     if locus:
@@ -139,13 +162,18 @@ def write_session(hubdir: str, path: str, accession: str, locus: str = "",
     for fn, *_ in present:
         ET.SubElement(res, "Resource", path=os.path.join(hubdir, fn))
     panel = ET.SubElement(root, "Panel", name="DataPanel")
-    for fn, name, disp, lim, col in present:
+    for fn, name, disp, lim, col, rend in present:
         attrs = {"id": os.path.join(hubdir, fn), "name": name,
                  "displayMode": disp, "visible": "true"}
         if col:
             attrs["color"] = col
         if lim:
-            attrs.update(autoScale="false", renderer="BAR_CHART")
+            attrs.update(autoScale="false", renderer=rend or "BAR_CHART")
+        # A heatmap track needs an explicit colour scale, otherwise IGV falls
+        # back to its default blue-white-red diverging scale, which implies a
+        # meaningful midpoint that divergence does not have.
+        if rend == "HEATMAP" and lim and col:
+            attrs["colorScale"] = _heatmap_scale(lim, col)
         tr = ET.SubElement(panel, "Track", **attrs)
         if lim:
             ET.SubElement(tr, "DataRange", minimum=str(lim[0]),
