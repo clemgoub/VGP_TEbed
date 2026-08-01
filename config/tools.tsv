@@ -7,6 +7,11 @@
 #   tool_id        Short stable key. Used in the bitmask, in the `methods` field
 #                  of the summary track, and in output filenames. Do not rename
 #                  after a hub is published -- it is user-visible.
+#
+#                  ROW ORDER IS THE BITMASK ORDER. Each tool's bit is its row
+#                  index, so APPEND new tools at the END of the table. Inserting
+#                  mid-table renumbers every tool below it, and any mask stored
+#                  in an already-built track then decodes to the wrong tools.
 #   short_label    Display name in the browser track list (UCSC caps ~17 chars).
 #   long_label     Full description for trackDb longLabel.
 #   version        Tool version used for this run. Propagates into track docs.
@@ -37,3 +42,4 @@ rm2	RepeatModeler2	RepeatModeler2 de novo library, annotated with RepeatMasker	2
 edta	EDTA	Extensive de-novo TE Annotator (structural + homology)	2.2.0	structural_te	mixed	edta_TElib.fa	227,26,28	3	yes	Observed: 1394714 hits, 372.3 Mb, 37 labels. Hybrid dialect -- RepeatMasker-style names (LINE/L2, SINE/MIR) mixed with Wicker codes (DTC/DTM/DTH) and MITE/ prefixes. rm_fields=mixed: homology calls (TE_homo_*, 1389546) carry full RM fields; structural calls (TE_struc_* 3995, LTRRT_* 1173) have NA divergence -- 5172 rows, matching the NA count exactly. Emits no tandem/satellite labels, confirming structural_te scope.
 pantera	Pantera	Pantera pangenome-derived TE library, annotated with RepeatMasker	1.0	general_homology	yes	pantera_lib.fa	51,160,44	1	yes	Observed: 1213581 hits, 237.6 Mb, 21 labels, zero NA. Coarsest vocabulary of the three: 40% bare DNA and 29% Unknown, so it contributes strongly to existence calls and weakly to classification.
 fastltr	fastLTR	fastLTR structural LTR retrotransposon detection	0.9	ltr_only	no	NA	255,127,0	4	no	NOT YET RUN on this assembly. Still emits an empty bigBed because contribTracks requires identical filenames across assembly directories. ran=no removes it from every support denominator, so nEligible reads 3 (or 2 for tandem loci) until it arrives.
+fastan	FasTAN	FasTAN tandem array detection (Myers), period and unit-identity estimates	0.8	tandem	divergence_only	NA	148,103,189	5	yes	Observed on GCA_951799975.1: 217563 arrays, 96.3 Mb, no header, 5 native columns. TANDEM SCOPE ONLY -- contributes to existence and to tandem-class calls, and is excluded from the denominator at TE loci. Emits the single label `tandem` by default: FasTAN detects arrays but does not classify them as satellite vs simple, so scripts/fastan2bed.py abstains rather than inferring a subclass from period (--classify-period opts in). rm_fields=divergence_only: perc_div is present but is UNIT-TO-UNIT divergence within the array (array homogeneity), NOT divergence from a library consensus (age proxy) -- do not read the two as the same quantity.
