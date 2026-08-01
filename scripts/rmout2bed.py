@@ -23,7 +23,26 @@ def parse_int_or_paren(s):
     return int(s.strip().lstrip("(").rstrip(")"))
 
 
-def convert(infile, outfile):
+def load_rename(path):
+    """Two-column TSV: name-in-.out <TAB> name-in-assembly.
+
+    Some upstream runs are performed on a renamed FASTA (EDTA's `.fa.mod`
+    shortens sequence names to `_J000000N`), so the .out cannot be joined to
+    the assembly without a mapping. Rather than guess inside this converter,
+    the mapping is an explicit input -- generate it with
+    scripts/infer_rm_rename.py, inspect it, then pass it here.
+    """
+    m = {}
+    with open(path) as fh:
+        for line in fh:
+            if line.startswith("#") or not line.strip():
+                continue
+            a, b = line.rstrip("\n").split("\t")[:2]
+            m[a] = b
+    return m
+
+
+def convert(infile, outfile, rename=None, drop_unmapped=False):
     header = (
         "#chrom\tchromStart\tchromEnd\tname\tscore\tstrand\t"
         "SW_score\tperc_div\tperc_del\tperc_ins\tquery_left\t"
@@ -33,6 +52,7 @@ def convert(infile, outfile):
 
     n_malformed = 0      # lines with too few fields
     n_empty = 0          # records that would yield a zero-length/negative interval
+    n_unmapped = 0       # sequence names absent from --rename
 
     for raw in infile:
         line = raw.strip()
@@ -53,6 +73,14 @@ def convert(infile, outfile):
         perc_del    = f[2]
         perc_ins    = f[3]
         chrom       = f[4]
+        if rename is not None:
+            if chrom in rename:
+                chrom = rename[chrom]
+            elif drop_unmapped:
+                n_unmapped += 1
+                continue
+            else:
+                n_unmapped += 1
         q_begin     = int(f[5])           # 1-based, inclusive
         q_end       = int(f[6])           # inclusive
         q_left      = parse_int_or_paren(f[7])
@@ -117,20 +145,33 @@ def convert(infile, outfile):
     if n_empty:
         print(f"[rmout2bed] skipped {n_empty} zero-length/negative interval(s) "
               "(chromEnd <= chromStart)", file=sys.stderr)
+    if n_unmapped:
+        verb = "dropped" if drop_unmapped else "PASSED THROUGH UNRENAMED"
+        print(f"[rmout2bed] {verb} {n_unmapped} record(s) whose sequence name was "
+              "not in --rename", file=sys.stderr)
 
 
 def main():
     ap = argparse.ArgumentParser(description="Convert RepeatMasker .out to BED.")
     ap.add_argument("infile", help="RepeatMasker .out file")
     ap.add_argument("-o", "--output", help="Output BED file (default: stdout)")
+    ap.add_argument("--rename", metavar="TSV",
+                    help="two-column TSV mapping .out sequence names to "
+                         "assembly names (see scripts/infer_rm_rename.py)")
+    ap.add_argument("--drop-unmapped", action="store_true",
+                    help="with --rename, drop records whose sequence name is "
+                         "absent from the mapping instead of passing them "
+                         "through unrenamed (which would fail validation)")
     args = ap.parse_args()
+
+    rename = load_rename(args.rename) if args.rename else None
 
     with open(args.infile) as fh:
         if args.output:
             with open(args.output, "w") as out:
-                convert(fh, out)
+                convert(fh, out, rename, args.drop_unmapped)
         else:
-            convert(fh, sys.stdout)
+            convert(fh, sys.stdout, rename, args.drop_unmapped)
 
 
 if __name__ == "__main__":

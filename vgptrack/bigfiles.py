@@ -161,6 +161,13 @@ def bedgraph_to_bigwig(bedgraph, chrom_sizes, out, bindir=None, sort=True):
     exe = find_kent("bedGraphToBigWig", bindir)
     if exe is None:
         return _bedgraph_to_bigwig_pybigtools(bedgraph, chrom_sizes, out)
+    # An empty bedGraph is a legitimate state, not an error: no tool in this
+    # build contributes consensus divergence (every tool is rm_fields=no or
+    # divergence_only). Kent's bedGraphToBigWig aborts on it with
+    # "needLargeMem: trying to allocate 0 bytes", so emit a valid 0-interval
+    # bigWig instead -- contribTracks requires the file to exist regardless.
+    if bedgraph.stat().st_size == 0:
+        return _bedgraph_to_bigwig_pybigtools(bedgraph, chrom_sizes, out)
     work = bedgraph
     if sort:
         work = out.parent / (bedgraph.stem + ".sorted.bg")

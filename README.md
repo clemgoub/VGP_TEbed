@@ -64,17 +64,36 @@ call a repeat but contradict each other on class (grey), so the agreed core is a
 ## Status
 
 Processed end to end on one assembly: `GCA_951799975.1` (*Gobius niger*, black
-goby), with RepeatModeler2, EDTA and Pantera. fastLTR is configured but has not
-been run, and ships as an empty placeholder track.
+goby), with RepeatModeler2, EDTA, fastLTR and FasTAN. Pantera is configured but
+has no published coordinates yet, and ships as an empty placeholder track.
+
+Every input is rebuildable from public GenomeArk data — see
+[docs/FASTLTR.md](docs/FASTLTR.md) and [docs/EDTA.md](docs/EDTA.md) for the S3
+keys and the converters.
 
 | | |
 |---|---|
 | Assembly | 870.6 Mb |
-| Covered by ≥1 tool | 431.3 Mb (49.5%) |
-| Summary features | 1,919,967 |
-| Single-tool intervals | 1,519,062 (91.1 Mb) |
-| Class labels observed / mapped | 135 / 135 |
+| Covered by ≥1 tool | 461.7 Mb (53.0%) |
+| Summary segments | 3,827,002 |
+| Display features | 1,900,653 |
+| Classified `repeat:TE*` / `repeat:tandem*` | 336.3 Mb / 67.1 Mb |
+| Conflicted | 95.7 Mb |
+| Mean divergence (over 424.6 Mb) | 12.18% |
 | Validation | `hubCheck` clean |
+
+Per-tool coverage, and the fraction no other tool calls:
+
+| tool | covered | unique |
+|---|---|---|
+| RepeatModeler2 | 409.0 Mb | 83.7 Mb |
+| EDTA | 322.3 Mb | 16.4 Mb |
+| FasTAN | 96.3 Mb | 32.8 Mb |
+| fastLTR | 10.6 Mb | 0.04 Mb |
+
+fastLTR is a specialist caller and behaves like one: it adds almost no
+territory, but 98.1% of what it calls falls on loci the summary independently
+classifies as LTR — corroboration rather than extension.
 
 These numbers describe **what the tools said**, not what is true. See
 [Known limitations](docs/SPECIFICATION.md#9-known-limitations).

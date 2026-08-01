@@ -1,3 +1,15 @@
+# Local safety net from the history rewrite that dropped the stray 18 MB
+# inputs/fastan.bed blob. Keep until the force-push is confirmed good, then
+# delete; never commit it (it contains the blob being removed).
+*.bundle
+
+# Tool outputs and their conversions -- redownloadable from GenomeArk
+# (see docs/FASTLTR.md, docs/EDTA.md for the exact S3 keys). These run to
+# hundreds of MB; inputs/fastan.bed was committed by accident before this
+# rule existed.
+inputs/
+smoke2/
+
 # Build outputs -- regenerable from the pipeline, far too large to track
 hub/
 work/
