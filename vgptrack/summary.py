@@ -52,6 +52,7 @@ SUMMARY_AS = """table repeatSummary
     string  consensusClass; "Consensus classification (full path)"
     uint    nSupport;       "Number of distinct tools calling a repeat here"
     uint    nEligible;      "Number of tools able to call this class"
+    uint    nClassify;      "Number of tools asserting a class beyond bare repeat"
     string  supportingTools; "Which tools support this call"
     string  agreement;      "Deepest level of classification agreement"
     string  conflict;       "Level at which tools first disagree, if any"
@@ -306,12 +307,20 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
 
     # Per-tool classification string for the mouseover: the whole point of the
     # summary track is that hovering tells you WHY the consensus is what it is.
+    # Alongside it, count the tools that actually CLASSIFIED (asserted anything
+    # beyond bare "repeat", non-advisory): the name field reports
+    # {class} {n_classifying}/{n_detecting}, so "DNA 3/3" can no longer mean
+    # "one tool said DNA and two said Unknown".
     per_tool = []
+    n_classify = np.zeros(len(seg), dtype=np.int8)
+    classifiers = []
     cls_arrays = {t: seg[f"cls_{t}"].to_numpy() for t in tool_ids if f"cls_{t}" in seg}
+    cls_depth = {t: registry_depth_lookup(a) for t, a in cls_arrays.items()}
     m_arr = seg["mask"].to_numpy()
     v_arr = seg.vote_mask.to_numpy()
     for i in range(len(seg)):
         parts = []
+        cls_tools = []
         for t in tool_ids:
             if not (m_arr[i] >> bits[t] & 1):
                 continue
@@ -319,8 +328,12 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
             lab = paths[cid] if cid else "no class"
             if not (v_arr[i] >> bits[t] & 1):
                 lab += " (advisory)"
+            elif cid and cls_depth[t][i] > 1:  # deeper than bare "repeat"
+                cls_tools.append(t)
             parts.append(f"{t}={lab}")
         per_tool.append("; ".join(parts) if parts else "none")
+        n_classify[i] = len(cls_tools)
+        classifiers.append(cls_tools)
 
     div = seg.mean_div.to_numpy()
     div_str = np.where(np.isnan(div), "not reported",
@@ -356,8 +369,14 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
         "chrom": seg.chrom.to_numpy(),
         "chromStart": seg.chromStart.to_numpy(),
         "chromEnd": seg.chromEnd.to_numpy(),
+        # {class} {n_classifying}/{n_detecting}: the numerator counts tools that
+        # asserted a class (beyond bare "repeat"), the denominator tools that
+        # detected the repeat at all. Existence support n/eligible stays in the
+        # mouseover and the repeatSupport track. Previously the name showed
+        # n_support/n_eligible, so "DNA 3/3" could mean one DNA vote plus two
+        # Unknowns -- the natural reading of the label was false.
         "name": [f"{s} {int(a)}/{int(b)}" for s, a, b in
-                 zip(short, seg.n_support.to_numpy(), seg.n_eligible.to_numpy())],
+                 zip(short, n_classify, seg.n_support.to_numpy())],
         "score": np.clip((seg.support_frac.to_numpy() * 1000).round(), 0, 1000).astype(int),
         "strand": ".",
         "thickStart": ts,
@@ -369,6 +388,7 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
         "consensusClass": cons,
         "nSupport": seg.n_support.to_numpy(),
         "nEligible": seg.n_eligible.to_numpy(),
+        "nClassify": n_classify,
         "supportingTools": mask_str,
         "agreement": [LEVEL_NAMES.get(int(x), str(x)) for x in ad],
         "conflict": ["none" if x < 0 else LEVEL_NAMES.get(int(x) + 1, str(x)) for x in cd],
@@ -395,8 +415,18 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
         if name_i.startswith("Repeat (unclassified)") and cfl[i] != "none":
             name_i = "Class disputed"
         parts = [f"{name_i} | {ns[i]}/{ne[i]} tools ({st[i]})"]
-        parts.append(f"agree to {agr[i]}" if agr[i] != "none"
-                     else "no classification agreement")
+        # who actually asserted the class, when fewer than everyone did; and
+        # never say "agree" on the word of a single classifier
+        if 0 < n_classify[i] < ns[i]:
+            parts.append(f"classified by {','.join(classifiers[i])} only")
+        if n_classify[i] >= 2:
+            parts.append(f"agree to {agr[i]}" if agr[i] != "none"
+                         else "no classification agreement")
+        elif n_classify[i] == 1:
+            parts.append(f"sole assertion at {agr[i]}" if agr[i] != "none"
+                         else "sole assertion")
+        else:
+            parts.append("unclassified by all")
         if cfl[i] != "none":
             parts.append(f"CONFLICT at {cfl[i]}")
         if core[i] > 0:

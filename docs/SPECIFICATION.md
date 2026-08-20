@@ -198,7 +198,7 @@ downweights that tool's **classification vote**. It never affects that tool's
 
 ## 6. Track reference
 
-### repeatSummary.bb — `bigBed 12+11`
+### repeatSummary.bb — `bigBed 12+12`
 
 Standard BED12 plus:
 
@@ -207,6 +207,7 @@ Standard BED12 plus:
 | `consensusClass` | string | harmonized class at the agreed depth |
 | `nSupport` | int | distinct tools calling a repeat here |
 | `nEligible` | int | tools capable of calling this class |
+| `nClassify` | int | tools asserting a class beyond bare `repeat` |
 | `supportingTools` | string | which ones |
 | `agreement` | string | depth name (`superfamily`, `class`, …) |
 | `conflict` | string | depth name or `none` |
@@ -218,6 +219,17 @@ Standard BED12 plus:
 
 Indexed on `name` (`searchIndex`, `extraIndex`), `mouseOverField mouseOver`,
 `itemRgb on`.
+
+**The `name` field reads `{class} {nClassify}/{nSupport}`** — the numerator is
+tools that asserted a class (anything deeper than bare `repeat`), the
+denominator tools that detected the repeat at all. An earlier version showed
+`nSupport/nEligible`, under which `DNA 3/3` could mean one tool said DNA and
+two said Unknown — the natural reading of the label was false. A classification
+backed by one tool out of three detectors now reads `DNA 1/3`, and the hover
+names the classifier (`classified by edta only`) and downgrades `agree to
+superfamily` to `sole assertion at superfamily`: agreement claims require at
+least two classifying tools. Existence support is unchanged and lives in
+`nSupport`/`nEligible` and the `repeatSupport` signal track.
 
 The hover answers, in order: **what it is → how many tools out of how many could
 → how deeply they agree → what conflicts → core size → divergence.**
