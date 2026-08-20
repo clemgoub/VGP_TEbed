@@ -131,16 +131,28 @@ Unspecified	*	repeat		unknown	high	As Unknown.
 Unclassified	*	repeat		unknown	high	As Unknown.
 NA	*	repeat		unknown	high	As Unknown.
 repeat_region	*	repeat		unknown	high	EDTA's generic feature type.
-# ---------------------------------------------------------------- EDTA two-letter TE-ontology codes (Wicker et al. 2007)
-# EDTA emits these as three-letter codes, sometimes with a Class/ prefix
-# (e.g. "DNA/DTA", "MITE/DTT", "LTR/RLC"). Rules are written to match the bare
-# code; the ingest step strips any leading "Class/" prefix before lookup.
-RLC*	edta	repeat:TE:ClassI:LTR:Copia		yes	high	Wicker code: R=retro, L=LTR, C=Copia.
-RLG*	edta	repeat:TE:ClassI:LTR:Gypsy		yes	high	Gypsy/Ty3.
-RLB*	edta	repeat:TE:ClassI:LTR:BelPao		yes	high	Bel/Pao.
-RLR*	edta	repeat:TE:ClassI:LTR:ERV		yes	high	Retrovirus.
-RLE*	edta	repeat:TE:ClassI:LTR:ERV		yes	high	ERV.
-RLX*	edta	repeat:TE:ClassI:LTR		yes	high	LTR, superfamily unknown -- order still asserted.
+# ---------------------------------------------------------------- Wicker et al. 2007 three-letter TE-ontology codes
+# Emitted with a Class/ prefix (e.g. "DNA/DTA", "MITE/DTT", "LTR/RLC"); rules
+# match the bare code and the ingest step strips any leading "Class/" prefix
+# before lookup.
+#
+# All six LTR codes below (RL*) are tool_id `*`. RLG/RLC/RLR were observed in
+# ltrdenovo (NGSEP) output emitted exactly as EDTA emits them; the remaining
+# three are widened with them because RL* is one closed, published series in
+# Wicker et al. 2007 -- splitting it by tool would mean an unobserved sibling
+# code silently degrades to bare "repeat" the first time any tool emits it,
+# which is the failure mode this block exists to prevent.
+#
+# The non-LTR codes further down stay edta-scoped. That asymmetry is deliberate
+# and narrower than it looks: those series (DT*, RI*, RS*) are larger and their
+# per-code semantics vary more between tools, so widening them would assert
+# agreement across vocabularies we have not checked against real output.
+RLC*	*	repeat:TE:ClassI:LTR:Copia		yes	high	Wicker code: R=retro, L=LTR, C=Copia. Observed in ltrdenovo.
+RLG*	*	repeat:TE:ClassI:LTR:Gypsy		yes	high	Gypsy/Ty3. Observed in ltrdenovo.
+RLB*	*	repeat:TE:ClassI:LTR:BelPao		yes	high	Bel/Pao. Not yet observed outside edta; widened with the RL* series.
+RLR*	*	repeat:TE:ClassI:LTR:ERV		yes	high	Retrovirus. Observed in ltrdenovo.
+RLE*	*	repeat:TE:ClassI:LTR:ERV		yes	high	ERV. Not yet observed outside edta; widened with the RL* series.
+RLX*	*	repeat:TE:ClassI:LTR		yes	high	LTR, superfamily unknown -- order still asserted. Not yet observed outside edta; widened with the RL* series.
 RIL*	edta	repeat:TE:ClassI:LINE:L1		yes	high	L1.
 RIR*	edta	repeat:TE:ClassI:LINE:R2		yes	high	R2.
 RIT*	edta	repeat:TE:ClassI:LINE:RTE		yes	high	RTE.

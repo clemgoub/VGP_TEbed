@@ -64,23 +64,24 @@ call a repeat but contradict each other on class (grey), so the agreed core is a
 ## Status
 
 Processed end to end on one assembly: `GCA_951799975.1` (*Gobius niger*, black
-goby), with all five tools: RepeatModeler2, EDTA, Pantera, FasTAN and fastLTR.
+goby), with all six tools: RepeatModeler2, EDTA, Pantera, FasTAN, fastLTR and
+LTRDeNovo.
 
-Four of the five inputs are rebuildable from public GenomeArk data — see
+Four of the six inputs are rebuildable from public GenomeArk data — see
 [docs/FASTLTR.md](docs/FASTLTR.md) and [docs/EDTA.md](docs/EDTA.md) for the S3
-keys and the converters. Pantera is the exception: GenomeArk publishes its TE
-*library* (`downstream_analyses/repeats/panteraGA/`, 196 consensus sequences)
-but not the RepeatMasker annotation, so `inputs/pantera.bed` currently comes
-from a locally supplied BED16 — see [docs/PANTERA.md](docs/PANTERA.md).
+keys and the converters. Two are supplied locally for now: Pantera, because
+GenomeArk publishes its TE *library* (196 consensus sequences) but not the
+RepeatMasker annotation ([docs/PANTERA.md](docs/PANTERA.md)); and LTRDeNovo,
+which is not on GenomeArk at all ([docs/LTRDENOVO.md](docs/LTRDENOVO.md)).
 
 | | |
 |---|---|
 | Assembly | 870.6 Mb |
-| Covered by ≥1 tool | 463.9 Mb (53.3%) |
-| Summary segments | 4,662,823 |
-| Display features | 1,943,041 |
-| Classified `repeat:TE*` / `repeat:tandem*` | 351.7 Mb / 61.3 Mb |
-| Conflicted | 132.1 Mb |
+| Covered by ≥1 tool | 464.0 Mb (53.3%) |
+| Summary segments | 4,669,060 |
+| Display features | 1,942,951 |
+| Classified `repeat:TE*` / `repeat:tandem*` | 352.0 Mb / 61.2 Mb |
+| Conflicted | 132.3 Mb |
 | Mean divergence (over 427.1 Mb) | 12.17% |
 | Validation | `hubCheck` clean |
 
@@ -88,23 +89,32 @@ Per-tool coverage, and the fraction no other tool calls:
 
 | tool | covered | unique |
 |---|---|---|
-| RepeatModeler2 | 409.0 Mb | 60.5 Mb |
+| RepeatModeler2 | 409.0 Mb | 60.4 Mb |
 | EDTA | 322.3 Mb | 14.3 Mb |
 | Pantera | 229.1 Mb | 2.2 Mb |
 | FasTAN | 96.3 Mb | 32.5 Mb |
-| fastLTR | 10.6 Mb | 0.04 Mb |
+| fastLTR | 10.6 Mb | 0.01 Mb |
+| LTRDeNovo | 5.7 Mb | 0.15 Mb |
 
 Adding tools in that order, the union saturates: 409.0 → 428.8 → 431.3 → 463.8
-→ 463.9 Mb. Only FasTAN adds substantial new territory (+32.5 Mb), because it
-is the only tandem-repeat specialist in the set. Pantera adds just 2.2 Mb of its
-own but has the lowest pairwise Jaccard among the three homology tools (0.542
-against RepeatModeler2, 0.526 against EDTA), so it contributes the most
-independent *support* per bp. fastLTR is a specialist caller and behaves like
-one: it adds almost no territory, but 98.1% of what it calls falls on loci the
-summary independently classifies as LTR — corroboration rather than extension.
+→ 463.9 → 464.0 Mb. Only FasTAN adds substantial new territory (+32.5 Mb),
+because it is the only tandem-repeat specialist in the set. Pantera adds just
+2.2 Mb of its own but has the lowest pairwise Jaccard among the three homology
+tools (0.542 against RepeatModeler2, 0.526 against EDTA), so it contributes the
+most independent *support* per bp.
 
-Support is broadly distributed: 110 Mb rests on a single tool, 136 Mb on two,
-187 Mb on three, 31 Mb on four, and 0.13 Mb on all five.
+The two LTR specialists behave very differently. fastLTR adds almost no
+territory but 98.1% of what it calls falls on loci the summary independently
+classifies as LTR — corroboration rather than extension. LTRDeNovo overlaps
+fastLTR at a Jaccard of only 0.102 (73.4% of its bp are not called by fastLTR
+at all), yet just 37.3% of its territory is classified LTR by the consensus.
+That figure splits sharply by detection method — 85.4% for its 228 structural
+calls, 13.7% for its 2,876 homology calls — which is documented in
+[docs/LTRDENOVO.md](docs/LTRDENOVO.md) and is worth understanding before
+treating an LTRDeNovo homology call as an LTR annotation.
+
+Support is broadly distributed: 110 Mb rests on a single tool, 135 Mb on two,
+185 Mb on three, 32 Mb on four, 1.6 Mb on five, and 0.01 Mb on all six.
 
 These numbers describe **what the tools said**, not what is true. See
 [Known limitations](docs/SPECIFICATION.md#9-known-limitations).
