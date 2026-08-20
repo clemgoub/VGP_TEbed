@@ -139,11 +139,39 @@ Working examples: `tests/data/*.bed.gz`.
 In `scripts/`. See [DESIGN_NOTES.md](DESIGN_NOTES.md#input-format-conversion-scripts)
 for per-converter detail.
 
-| Tool | Script | Status |
-|---|---|---|
-| RepeatMasker `.out` (RepeatModeler2, Pantera) | `rmout2bed.py` | available |
-| EDTA | — | **wanted** |
-| fastLTR | — | **wanted** |
+| Tool | Source format supplied | Script | Production expectation |
+|---|---|---|---|
+| RepeatModeler2 | RepeatMasker `.out` | `rmout2bed.py` | `.out` — no change |
+| Pantera | BED16 (already conformant) | none needed | `.out` from the RepeatMasker run |
+| fastLTR | RepeatMasker `.out` | `rmout2bed.py` | `.out` — no change |
+| EDTA | GFF3 (`*.TEanno.gff3`) | `edtagff2bed.py` | converter until EDTA emits `.out`/BED16 |
+| FasTAN | native BED | `fastan2bed.py` | converter until FasTAN emits BED16 |
+| LTRDeNovo | native GFF3 (NGSEP) | `ltrdenovogff2bed.py` | converter until it emits `.out`/BED16 |
+
+**Three of six tools already supply a standard input.** RepeatModeler2 and
+fastLTR provide RepeatMasker `.out`; Pantera's was supplied as a conformant
+BED16 directly. Those need no per-tool code — `rmout2bed.py` is the generic
+`.out` reader, not a fastLTR-specific script.
+
+The remaining three are the real format gap: EDTA, FasTAN and LTRDeNovo emit
+native formats, and each converter encodes a decision the tool should be making
+itself (which GFF3 feature level represents the element; whether an `identity`
+field is consensus divergence or a within-element measure). Each `docs/<TOOL>.md`
+records that decision so it can be raised upstream.
+
+### Prototype-only accommodations
+
+Distinct from format conversion, and expected to disappear:
+
+- **`infer_rm_rename.py`** — the pilot fastLTR `.out` had query names shortened
+  to `_J0000000` placeholders by an upstream `.fa.mod` step, with no mapping
+  published; names were recovered by matching sequence lengths (120/126 unique;
+  7 hits on size-colliding unplaced scaffolds dropped as unresolvable). Future
+  fastLTR output carries the assembly's real contig IDs, so this step retires
+  and fastLTR ingests through plain `rmout2bed.py`.
+
+If you are a tool author reading this: emitting RepeatMasker `.out`, or the
+BED16 of §2, removes your tool from the converter table entirely.
 
 Converting from RepeatMasker `.out`, remember: coordinates are 1-based
 fully-closed, so `chromStart = query_begin - 1`; strand `C` becomes `-`;
