@@ -195,7 +195,7 @@ the error to a warning).
    ([INPUT_FORMAT.md](docs/INPUT_FORMAT.md)); coordinates
    validated against `chrom.sizes`, sequence names reconciled via chromAlias.
 2. **Harmonize** — each tool's class label is mapped onto a shared hierarchy via
-   `config/class_map.tsv`. The tool's original label is always preserved.
+   `config/class_map.tsv` (AI-driven for prototype, pending Dfam-Repbase harmonisation). The tool's original label is always preserved.
 3. **Segment** — per-base state, run-length encoded. Support counts **distinct
    tools**, carried as a bitmask, so one tool's overlapping calls cannot inflate
    it.
