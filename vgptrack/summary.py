@@ -53,14 +53,14 @@ SUMMARY_AS = """table repeatSummary
     uint    nSupport;       "Number of distinct tools calling a repeat here"
     uint    nEligible;      "Number of tools able to call this class"
     uint    nClassify;      "Number of tools asserting a class beyond bare repeat"
-    string  supportingTools; "Which tools support this call"
+    lstring supportingTools; "Which tools support this call"
     string  agreement;      "Deepest level of classification agreement"
     string  conflict;       "Level at which tools first disagree, if any"
-    string  perToolClass;   "Classification from each tool"
+    lstring perToolClass;   "Classification from each tool"
     string  meanDivergence; "Mean divergence from family consensus (%)"
     string  evidence;       "Structural or homology evidence"
     string  flags;          "Quality flags"
-    string  mouseOver;      "Composed hover summary"
+    lstring mouseOver;      "Composed hover summary"
     )
 """
 

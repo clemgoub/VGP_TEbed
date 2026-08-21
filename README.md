@@ -64,8 +64,11 @@ call a repeat but contradict each other on class (grey), so the agreed core is a
 ## Status
 
 Processed end to end on one assembly: `GCA_951799975.1` (*Gobius niger*, black
-goby), with all seven tools: RepeatModeler2, EDTA, Pantera, FasTAN, fastLTR,
-LTRDeNovo and Satellome.
+goby), with nine tools: RepeatModeler2, EDTA, Pantera, FasTAN, fastLTR,
+LTRDeNovo, Satellome, and — pulled straight from the assembly's public GenArk
+track set — TRF (simpleRepeat) and WindowMasker (WM + SDust). The GenArk pair
+are the first inputs rebuildable for any VGP assembly with no local files
+(see [docs/GENARK_TRACKS.md](docs/GENARK_TRACKS.md)).
 
 Four of the six inputs are rebuildable from public GenomeArk data — see
 [docs/FASTLTR.md](docs/FASTLTR.md) and [docs/EDTA.md](docs/EDTA.md) for the S3

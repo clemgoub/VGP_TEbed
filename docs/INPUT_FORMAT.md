@@ -151,13 +151,15 @@ for per-converter detail.
 
 | Tool | Native input | Script | Native fields beyond BED16, and where they go |
 |---|---|---|---|
-| RepeatModeler2 | RepeatMasker `.out` | `rmout2bed.py` | none — `.out` maps 1:1 onto BED16 |
-| fastLTR | RepeatMasker `.out` | `rmout2bed.py` | none — same 1:1 mapping |
-| Pantera | RepeatMasker `.out` (BED16 supplied for the pilot) | `rmout2bed.py` | none |
+| RepeatModeler2 | RepeatMasker `.out` | `rmout2bed.py` | none carried beyond BED16; the overlap `*` flag is dropped (see residual losses) |
+| fastLTR | RepeatMasker `.out` | `rmout2bed.py` | same — overlap `*` flag dropped |
+| Pantera | RepeatMasker `.out` (BED16 supplied for the pilot) | `rmout2bed.py` | same — overlap `*` flag dropped |
 | EDTA | GFF3 (`*.TEanno.gff3`) | `edtagff2bed.py` | `method` (structural/homology) → `hit_id` prefix; `identity` → `perc_div` (structural LTR identity deliberately NOT emitted as divergence — within-element, not vs consensus) |
 | FasTAN | native BED (period, identity) | `fastan2bed.py` | `period` → `name` (`tandem_p<period>`); unit identity → `score` + `perc_div` (flagged `divergence_only` in the manifest) |
 | LTRDeNovo | native GFF3 (NGSEP) | `ltrdenovogff2bed.py` | `method` → `name` suffix; **LTR/TSD sub-features currently dropped** — see below |
 | Satellome | native BED5 | `satellome2bed.py` | none — col 5 is redundant (verified) |
+| TRF | GenArk `simpleRepeat.bb` (bigBed 4+12) | `simplerepeat2bed.py` | period+copyNum → `name` (`p<N>_x<N>_<unit>`); TRF score → `SW_score`; 100−perMatch → `perc_div` (`divergence_only`); base comp/entropy/unit seq not carried (rederivable from the public track) |
+| WindowMasker | GenArk `windowMasker.bb` (bigBed 3) | `windowmasker2bed.py` | nothing to carry — bare intervals; emits `Unknown` (pure existence, abstains from class) |
 
 Where a native field has no BED16 column, the converters route it into `name`
 or `hit_id` so it survives into the per-tool track mouseover. Known residual

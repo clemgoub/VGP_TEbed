@@ -9,14 +9,14 @@ locus sets its bit once and contributes exactly 1 to support, which is the
 structural guarantee that intra-tool overlap can never inflate support.
 
 Arrays painted per sequence (n = sequence length):
-  mask        uint8  bitmask, one bit per tool -- who called a repeat here
-  vote        uint8  bitmask of tools whose CLASS vote counts here
+  mask        uint16 bitmask, one bit per tool -- who called a repeat here
+  vote        uint16 bitmask of tools whose CLASS vote counts here
                      (excludes self-conflicting and uncertain calls)
   cls_id      int32  per-tool canonical class id, one array per tool
   div_sum     float32 / div_n uint8  -- for mean divergence per base
-  te_mask     uint8  bitmask of tools calling this base a TE (not tandem/gene)
+  te_mask     uint16 bitmask of tools calling this base a TE (not tandem/gene)
 
-Memory: the largest goby sequence is 76.5 Mb, so a handful of uint8 arrays is
+Memory: the largest goby sequence is 76.5 Mb, so a handful of uint16 arrays is
 tens of MB. Sequences are processed one at a time and released.
 """
 
@@ -119,24 +119,26 @@ def segment_sequence(hits_seq: pd.DataFrame, seq_len: int, tools, registry,
     self-conflict (depth 4) is treated as mild and keeps its vote.
     """
     n_tools = len(tools)
-    # Every per-base mask below is uint8, so bit 8 and above would be silently
+    # Every per-base mask below is uint16, so bit 16 and above would be silently
     # truncated -- support counts would look plausible and be wrong. ToolSet
     # permits up to 64 tools, so this bound is the narrower one and must be
-    # checked here rather than at load time.
+    # checked here rather than at load time. (Widened from uint8 2026-08-21
+    # when TRF and WindowMasker became tools 8 and 9; the goby genome costs
+    # ~76.5 MB extra per mask array at uint16, which is nothing.)
     max_bit = max((t.bit for t in tools), default=-1)
-    if max_bit >= 8:
+    if max_bit >= 16:
         raise ValueError(
             f"tool '{[t.tool_id for t in tools if t.bit == max_bit][0]}' has "
-            f"bit {max_bit}, but the per-base masks are uint8 (max bit 7). "
+            f"bit {max_bit}, but the per-base masks are uint16 (max bit 15). "
             "Widen mask/vote_mask/te_mask/nonte_mask/struct_mask/eligible_mask "
-            "to uint16 or uint64 before adding a 9th tool.")
-    mask = np.zeros(seq_len, dtype=np.uint8)
-    vote_mask = np.zeros(seq_len, dtype=np.uint8)
-    te_mask = np.zeros(seq_len, dtype=np.uint8)
-    nonte_mask = np.zeros(seq_len, dtype=np.uint8)
+            "(and the _POPCOUNT table) before adding a 17th tool.")
+    mask = np.zeros(seq_len, dtype=np.uint16)
+    vote_mask = np.zeros(seq_len, dtype=np.uint16)
+    te_mask = np.zeros(seq_len, dtype=np.uint16)
+    nonte_mask = np.zeros(seq_len, dtype=np.uint16)
     div_sum = np.zeros(seq_len, dtype=np.float32)
     div_n = np.zeros(seq_len, dtype=np.uint8)
-    struct_mask = np.zeros(seq_len, dtype=np.uint8)
+    struct_mask = np.zeros(seq_len, dtype=np.uint16)
     # Per-tool class id at each base. Later hits overwrite earlier ones; to make
     # this deterministic, hits are painted in order of increasing class depth so
     # the most specific classification wins the base.
@@ -157,7 +159,7 @@ def segment_sequence(hits_seq: pd.DataFrame, seq_len: int, tools, registry,
             g = g[~g.canonical_path.str.startswith("repeat:artefact")]
             if g.empty:
                 continue
-        bit = np.uint8(1 << tool.bit)
+        bit = np.uint16(1 << tool.bit)
         s = g.chromStart.to_numpy(np.int64)
         e = g.chromEnd.to_numpy(np.int64)
         _paint(s, e, np.full(len(g), bit), mask, "or")
@@ -202,7 +204,7 @@ def segment_sequence(hits_seq: pd.DataFrame, seq_len: int, tools, registry,
                         div_sum, div_n, struct_mask, tools, registry)
 
 
-_POPCOUNT = np.array([bin(i).count("1") for i in range(256)], dtype=np.uint8)
+_POPCOUNT = np.array([bin(i).count("1") for i in range(65536)], dtype=np.uint8)
 
 
 def _encode_runs(mask, vote_mask, cls, te_mask, nonte_mask, div_sum, div_n,
@@ -419,11 +421,11 @@ def add_eligibility(seg: pd.DataFrame, tools, registry) -> pd.DataFrame:
     paths = np.array(registry.paths, dtype=object)
     consensus_path = paths[seg.consensus_id.to_numpy()]
     n_elig = np.zeros(len(seg), dtype=np.int8)
-    elig_mask = np.zeros(len(seg), dtype=np.uint8)
+    elig_mask = np.zeros(len(seg), dtype=np.uint16)
     # Only a handful of distinct consensus paths exist; compute per unique path.
     uniq, inv = np.unique(consensus_path.astype(str), return_inverse=True)
     ne = np.array([tools.n_eligible(p) for p in uniq], dtype=np.int8)
-    em = np.array([tools.eligible_mask(p) for p in uniq], dtype=np.uint8)
+    em = np.array([tools.eligible_mask(p) for p in uniq], dtype=np.uint16)
     n_elig = ne[inv]
     elig_mask = em[inv]
     seg = seg.copy()
@@ -435,7 +437,7 @@ def add_eligibility(seg: pd.DataFrame, tools, registry) -> pd.DataFrame:
     # the eligible mask with the observed mask so the denominator can never be
     # smaller than the numerator; without this, support_frac exceeds 1.0 on
     # ~0.34 Mb of tandem sequence.
-    elig_mask = (elig_mask | seg["mask"].to_numpy()).astype(np.uint8)
+    elig_mask = (elig_mask | seg["mask"].to_numpy()).astype(np.uint16)
     n_elig = _POPCOUNT[elig_mask]
     seg["n_eligible"] = n_elig
     seg["eligible_mask"] = elig_mask
