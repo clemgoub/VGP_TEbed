@@ -307,15 +307,29 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
 
     # Per-tool classification string for the mouseover: the whole point of the
     # summary track is that hovering tells you WHY the consensus is what it is.
-    # Alongside it, count the tools that actually CLASSIFIED (asserted anything
-    # beyond bare "repeat", non-advisory): the name field reports
-    # {class} {n_classifying}/{n_detecting}, so "DNA 3/3" can no longer mean
-    # "one tool said DNA and two said Unknown".
+    # Alongside it, count the tools whose classification BACKS the displayed
+    # class: the name field reports {class} {n_backing}/{n_detecting}, so
+    # "DNA 3/3" can no longer mean "one tool said DNA and two said Unknown" --
+    # and "LINE 5/5" cannot count a tool that called the locus a satellite.
+    # Compatibility is token-wise path prefix in either direction (a tool
+    # asserting LINE:R2 backs a consensus of LINE; plain string startswith
+    # would let ClassII match a ClassI consensus). When the consensus is bare
+    # "repeat" (unclassified or disputed), the count falls back to every
+    # non-advisory classifying tool, so "Class disputed 2/3" reads as
+    # "two classifiers dispute, out of three detectors".
+    def _backs(tool_path, cons_path):
+        if not tool_path or tool_path == "repeat":
+            return False
+        if cons_path in ("repeat", ""):
+            return True   # unclassified/disputed: count any real classification
+        return (tool_path == cons_path
+                or tool_path.startswith(cons_path + ":")
+                or cons_path.startswith(tool_path + ":"))
+
     per_tool = []
     n_classify = np.zeros(len(seg), dtype=np.int8)
     classifiers = []
     cls_arrays = {t: seg[f"cls_{t}"].to_numpy() for t in tool_ids if f"cls_{t}" in seg}
-    cls_depth = {t: registry_depth_lookup(a) for t, a in cls_arrays.items()}
     m_arr = seg["mask"].to_numpy()
     v_arr = seg.vote_mask.to_numpy()
     for i in range(len(seg)):
@@ -328,7 +342,7 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
             lab = paths[cid] if cid else "no class"
             if not (v_arr[i] >> bits[t] & 1):
                 lab += " (advisory)"
-            elif cid and cls_depth[t][i] > 1:  # deeper than bare "repeat"
+            elif cid and _backs(paths[cid], cons[i]):
                 cls_tools.append(t)
             parts.append(f"{t}={lab}")
         per_tool.append("; ".join(parts) if parts else "none")

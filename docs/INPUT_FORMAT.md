@@ -147,17 +147,19 @@ for per-converter detail.
 | EDTA | GFF3 (`*.TEanno.gff3`) | `edtagff2bed.py` | converter until EDTA emits `.out`/BED16 |
 | FasTAN | native BED | `fastan2bed.py` | converter until FasTAN emits BED16 |
 | LTRDeNovo | native GFF3 (NGSEP) | `ltrdenovogff2bed.py` | converter until it emits `.out`/BED16 |
+| Satellome | native BED5 | `satellome2bed.py` | converter until it emits BED16 |
 
-**Three of six tools already supply a standard input.** RepeatModeler2 and
+**Three of seven tools already supply a standard input.** RepeatModeler2 and
 fastLTR provide RepeatMasker `.out`; Pantera's was supplied as a conformant
 BED16 directly. Those need no per-tool code — `rmout2bed.py` is the generic
 `.out` reader, not a fastLTR-specific script.
 
-The remaining three are the real format gap: EDTA, FasTAN and LTRDeNovo emit
-native formats, and each converter encodes a decision the tool should be making
-itself (which GFF3 feature level represents the element; whether an `identity`
-field is consensus divergence or a within-element measure). Each `docs/<TOOL>.md`
-records that decision so it can be raised upstream.
+The remaining four are the real format gap: EDTA, FasTAN, LTRDeNovo and
+Satellome emit native formats, and each converter encodes a decision the tool
+should be making itself (which GFF3 feature level represents the element;
+whether an `identity` field is consensus divergence or a within-element
+measure; whether a length filter applied upstream is part of the annotation).
+Each `docs/<TOOL>.md` records that decision so it can be raised upstream.
 
 ### Prototype-only accommodations
 

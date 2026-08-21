@@ -64,8 +64,8 @@ call a repeat but contradict each other on class (grey), so the agreed core is a
 ## Status
 
 Processed end to end on one assembly: `GCA_951799975.1` (*Gobius niger*, black
-goby), with all six tools: RepeatModeler2, EDTA, Pantera, FasTAN, fastLTR and
-LTRDeNovo.
+goby), with all seven tools: RepeatModeler2, EDTA, Pantera, FasTAN, fastLTR,
+LTRDeNovo and Satellome.
 
 Four of the six inputs are rebuildable from public GenomeArk data — see
 [docs/FASTLTR.md](docs/FASTLTR.md) and [docs/EDTA.md](docs/EDTA.md) for the S3

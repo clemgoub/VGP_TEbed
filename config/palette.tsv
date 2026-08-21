@@ -18,8 +18,9 @@ repeat:TE:ClassI:LTR	31,119,180	LTR	LTR retrotransposon
 repeat:TE:ClassI:PLE	31,119,180	PLE	Penelope-like; grouped with LTR for colour only
 repeat:TE:ClassI:DIRS	31,119,180	DIRS	DIRS/tyrosine-recombinase; grouped with LTR for colour only
 repeat:TE:ClassII	227,26,28	DNA	DNA transposon (TIR and Crypton)
-repeat:TE:ClassII:Helitron	255,127,0	Helitron/Maverick	Rolling-circle and self-synthesising DNA transposons
-repeat:TE:ClassII:Maverick	255,127,0	Helitron/Maverick	Rolling-circle and self-synthesising DNA transposons
-repeat:tandem	152,78,163	Tandem/Simple	Satellite, simple repeat, low complexity
+repeat:TE:ClassII:Helitron	255,127,0	RC/Helitron	Rolling-circle DNA transposons (Helitron, Helentron)
+repeat:TE:ClassII:Maverick	166,86,40	Maverick	Self-synthesising DNA transposons (Maverick/Polinton)
+repeat:tandem:satellite	206,61,138	Satellite	Satellite arrays (centromeric, telomeric, acrocentric and other)
+repeat:tandem	152,78,163	Tandem/Simple	Simple repeat, low complexity, unspecified tandem
 repeat:multigene	255,217,47	Multigene	rRNA, tRNA, snRNA and other repeated host genes
 CONFLICT	0,0,0	Class conflict	Reserved: tools disagree at or above order level.
