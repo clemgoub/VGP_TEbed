@@ -196,6 +196,70 @@ def merge_for_display(seg: pd.DataFrame, sliver_bp: int = 20) -> pd.DataFrame:
         tmp = pd.DataFrame({"g": gid, "cls": col, "dep": dep})
         pick = tmp.groupby("g", sort=False).dep.idxmax().to_numpy()
         out[f"cls_{t}"] = col[pick]
+    # CORROBORATION CAP, element level. Each segment's consensus already obeys
+    # the quorum rule (segment.py _cascade_body), but the merge picks the
+    # DEEPEST segment's consensus for the whole element -- and a lone-voter
+    # segment legitimately deepens to its tool's full path. An element that
+    # mixes edta-only stretches (consensus Helitron, sole voter) with
+    # edta+pantera stretches (consensus ClassII, corroborated) would therefore
+    # read "Helitron" again: the same overstatement the segment rule fixed,
+    # re-introduced one level up (user-reported, same element class). Cap the
+    # element's consensus at the deepest level its own per-tool classes
+    # corroborate: the depth to which >=2 voting tools' element-level classes
+    # follow the consensus path (a lone informative tool keeps full depth --
+    # sole assertion is labelled as such downstream).
+    reg = _REGISTRY
+    if reg is not None:
+        cons_ids = out.consensus_id.to_numpy()
+        cons_depth = reg.depth[cons_ids]
+        maxd = reg.prefix_at.shape[1]
+        vm_out = out.vote_mask.to_numpy()
+        cls_mat, vote_rows = [], []
+        for t, b in _TOOL_BITS.items():
+            if f"cls_{t}" in out:
+                cls_mat.append(out[f"cls_{t}"].to_numpy())
+                vote_rows.append(((vm_out >> b) & 1).astype(bool))
+        if cls_mat:
+            cls_mat = np.stack(cls_mat)            # (T, n)
+            vote_rows = np.stack(vote_rows)        # (T, n)
+            informative = vote_rows & (cls_mat > 0)
+            n_inf_el = informative.sum(axis=0)
+            # common-prefix depth of each tool's class with the consensus
+            common = np.zeros(cls_mat.shape, dtype=np.int8)
+            for d in range(maxd):
+                ok = (informative
+                      & (reg.depth[cls_mat] > d) & (cons_depth[None, :] > d)
+                      & (reg.prefix_at[cls_mat, d] == reg.prefix_at[cons_ids, d][None, :]))
+                common += ok & (common == d)
+            # depth backed by >=2 voters: second-largest common depth
+            part = np.partition(common, common.shape[0] - 2, axis=0)
+            second = part[common.shape[0] - 2] if common.shape[0] >= 2 else common[0]
+            corrob = np.where(n_inf_el >= 2, second, cons_depth).astype(np.int8)
+            capped2 = np.minimum(out.agree_depth.to_numpy(), corrob)
+            need2 = capped2 < out.agree_depth.to_numpy()
+            if need2.any():
+                cp2 = out.consensus_path.to_numpy().copy()
+                cp2[need2] = [":".join(p.split(":")[:d]) if d > 0 else "repeat"
+                              for p, d in zip(cp2[need2], capped2[need2])]
+                out["consensus_path"] = cp2
+                out["consensus_id"] = [registry_index_lookup(p)
+                                       for p in out.consensus_path.to_numpy()]
+                out["agree_depth"] = capped2
+
+    # Per-tool coverage fraction of the merged element. A tool "supporting" an
+    # element may cover 100% of its bases or 20% of them; the mask union that
+    # builds `supportingTools` cannot tell those apart, and a user comparing
+    # the summary against the per-tool tracks sees the difference immediately
+    # (user-reported on a real element: EDTA end-to-end, WindowMasker four
+    # slivers totalling 21%, both listed as "2/4 tools" support).
+    lens_arr = lens.astype(np.float64)
+    m_all = seg["mask"].to_numpy()
+    tool_bits = {c[4:]: None for c in seg.columns if c.startswith("cls_")}
+    for i_t, t in enumerate(tool_bits):
+        covered = ((m_all >> _TOOL_BITS[t]) & 1) * lens_arr
+        tmp2 = pd.DataFrame({"g": gid, "c": covered})
+        out[f"cov_{t}"] = (tmp2.groupby("g", sort=False).c.sum().to_numpy()
+                           / np.maximum(out._wsum.to_numpy(), 1))
     return out.drop(columns=["_wsum"])
 
 
@@ -219,6 +283,16 @@ def registry_index_lookup(path: str) -> int:
 def set_registry(registry):
     global _REGISTRY
     _REGISTRY = registry
+
+
+# Tool-id -> bit position, set alongside the registry; needed by
+# merge_for_display to compute per-tool coverage fractions from the mask.
+_TOOL_BITS: dict = {}
+
+
+def set_tool_bits(bits: dict):
+    global _TOOL_BITS
+    _TOOL_BITS = dict(bits)
 
 
 def core_runs(seg: pd.DataFrame, elements: pd.DataFrame, sliver_bp: int = 20) -> tuple[np.ndarray, np.ndarray]:
@@ -421,6 +495,20 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
     st = bed.supportingTools.to_numpy(); dv = bed.meanDivergence.to_numpy()
     core = (bed.thickEnd.to_numpy() - bed.thickStart.to_numpy())
     span = (bed.chromEnd.to_numpy() - bed.chromStart.to_numpy())
+    # Per-tool coverage of the element, so "supports" cannot read as
+    # "spans": a tool covering 21% of the element in slivers and a tool
+    # covering 100% both appear in supportingTools, and the difference is
+    # exactly what a user comparing against the per-tool tracks sees.
+    # Annotate each tool with its coverage %, omitting ">95%" as the
+    # uninteresting common case: (edta, windowmasker 21%).
+    cov_cols = {c[4:]: seg[c].to_numpy() for c in seg.columns if c.startswith("cov_")}
+    def _tools_with_cov(i, names):
+        out = []
+        for t in names.split(","):
+            f = cov_cols.get(t, None)
+            v = float(f[i]) if f is not None else 1.0
+            out.append(t if v > 0.95 else f"{t} {max(1, round(100 * v))}%")
+        return ",".join(out)
     mouse = []
     for i in range(len(seg)):
         # "unclassified" means no tool said anything; when tools DID classify
@@ -428,7 +516,8 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
         name_i = lab[i]
         if name_i.startswith("Repeat (unclassified)") and cfl[i] != "none":
             name_i = "Class disputed"
-        parts = [f"{name_i} | {ns[i]}/{ne[i]} tools ({st[i]})"]
+        st_i = _tools_with_cov(i, st[i]) if st[i] != "none" else st[i]
+        parts = [f"{name_i} | {ns[i]}/{ne[i]} tools ({st_i})"]
         # who actually asserted the class, when fewer than everyone did; and
         # never say "agree" on the word of a single classifier
         if 0 < n_classify[i] < ns[i]:

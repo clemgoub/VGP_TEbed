@@ -146,6 +146,15 @@ Agreement is therefore reported as a **depth** on the hierarchy:
 - `conflictDepth` — shallowest level at which any two votes diverge; `-1` if none.
 - **Abstention** (`Unknown`, `unclassified`, `NA`) neither deepens agreement nor
   creates conflict. A tool that declines to classify is not a dissenting vote.
+- **Corroboration: with ≥2 informative voters, consensus deepens only while ≥2
+  of them still reach that depth.** A coarse vote does not *conflict* with a
+  finer one (see abstention), but neither does it *endorse* the finer levels:
+  EDTA `ClassII:Helitron` + Pantera `ClassII` is consensus `ClassII`
+  (`agree to class`), not `Helitron` — the superfamily is EDTA's alone and is
+  visible in `perToolClass`, not promoted into the element's name and colour.
+  A lone informative voter still resolves to its own full path: sole assertion
+  is then the only evidence, and the display already labels it
+  (`sole assertion at <depth>`, `nClassify=1`).
 - **Agreement is capped at the first conflict.** A feature cannot claim
   superfamily consensus and class-level conflict simultaneously; the consensus
   path is truncated to match.
@@ -233,6 +242,15 @@ least two classifying tools. Existence support is unchanged and lives in
 
 The hover answers, in order: **what it is → how many tools out of how many could
 → how deeply they agree → what conflicts → core size → divergence.**
+
+Each tool in the supporting list is annotated with its coverage of the element
+when below 95% — `(edta,windowmasker 21%)` — because "supports" in a merged
+element means "overlaps somewhere", not "spans": a tool present as a few
+slivers and a tool covering end-to-end would otherwise read identically.
+`nSupport` is the maximum per-base support anywhere in the element; the
+`score`/`repeatSupportFrac` signal carries the length-weighted value (an
+element with one tool over 79% of its bases and two over the rest scores
+~0.30, not 0.5).
 
 ### Signals — `bigWig`, full per-base resolution
 

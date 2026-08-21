@@ -354,6 +354,18 @@ def _cascade_body(informative, cls_cols, prefix, pdepth, maxd,
 
     Mutates `consensus`, `agree_depth` and `conflict_depth` in place.
     """
+    # CORROBORATION RULE. With >=2 informative voters, the consensus may only
+    # deepen while >=2 of them still reach that depth: the moment a single
+    # tool is extending alone, the consensus stops at the last corroborated
+    # level. Before this rule, EDTA=ClassII:Helitron + Pantera=ClassII
+    # yielded consensus "Helitron" labelled 2/4 -- one tool's superfamily
+    # wearing two tools' agreement (user-reported; the third instance of a
+    # label claiming more agreement than the votes contain). A LONE
+    # informative voter still deepens to its own full path: sole assertion
+    # is then the only evidence, the display already says so ("sole
+    # assertion at <depth>", nClassify=1), and gating it would discard the
+    # only classification available.
+    n_inf_total = informative.sum(axis=0)
     for d in range(maxd):
         # A tool participates at depth d only if its own path actually asserts
         # that many levels. Pantera saying "ClassII" while RepeatModeler says
@@ -364,10 +376,12 @@ def _cascade_body(informative, cls_cols, prefix, pdepth, maxd,
         pref_d = np.where(reaches, prefix[cls_cols, d], -1)
         first = np.max(pref_d, axis=0)
         n_reach = reaches.sum(axis=0)
-        # Agreement at d requires at least one voter reaching d, and all who
-        # reach d sharing the same prefix.
+        # Agreement at d requires all who reach d sharing the same prefix,
+        # AND corroboration: >=2 reaching voters, or a lone informative voter
+        # overall.
         same = np.all(np.where(reaches, pref_d == first, True), axis=0)
-        deeper_ok = still & same & (n_reach > 0)
+        quorum = (n_reach >= 2) | ((n_inf_total == 1) & (n_reach > 0))
+        deeper_ok = still & same & quorum
         # Conflict is recorded only where voters that BOTH reached d disagree.
         diverge = still & ~same & (conflict_depth < 0) & (n_reach > 1)
         conflict_depth[diverge] = d

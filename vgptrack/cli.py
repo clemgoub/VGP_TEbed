@@ -85,6 +85,7 @@ def build(args: argparse.Namespace) -> int:
 
     reg = segment.ClassRegistry.build(hits.canonical_path.unique())
     summary.set_registry(reg)
+    summary.set_tool_bits({t.tool_id: t.bit for t in ran})
 
     seg = segment.segment_all(hits, ran, reg, sizes,
                               conflict_depth_threshold=args.conflict_threshold,

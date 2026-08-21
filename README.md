@@ -146,7 +146,7 @@ manifest records `ran=yes` for them, and the build refuses by default to ship a
 documented tool as an empty track. See [Guard against a forgotten
 input](#guard-against-a-forgotten-input).
 
-Expected output: `9,350 segments over 1,025,484 bp`, `3,725 display features`,
+Expected output: `9,350 segments over 1,025,484 bp`, `3,695 display features`,
 `hubCheck clean`.
 
 On a real assembly, add `--alias` (tools use different sequence-naming
