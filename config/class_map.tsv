@@ -158,24 +158,24 @@ RIR*	edta	repeat:TE:ClassI:LINE:R2		yes	high	R2.
 RIT*	edta	repeat:TE:ClassI:LINE:RTE		yes	high	RTE.
 RIJ*	edta	repeat:TE:ClassI:LINE:Jockey		yes	high	Jockey.
 RII*	edta	repeat:TE:ClassI:LINE:I		yes	high	I element.
-RIX*	edta	repeat:TE:ClassI:LINE		yes	high	LINE, superfamily unknown.
+RIX*	*	repeat:TE:ClassI:LINE		yes	high	LINE, superfamily unknown. Widened from edta: observed in repet (TEdenovo Wcode) with identical semantics.
 RST*	edta	repeat:TE:ClassI:SINE:tRNA		yes	high	tRNA-derived SINE.
 RSL*	edta	repeat:TE:ClassI:SINE:7SL		yes	high	7SL-derived SINE.
 RSS*	edta	repeat:TE:ClassI:SINE:5S		yes	high	5S-derived SINE.
-RSX*	edta	repeat:TE:ClassI:SINE		yes	high	SINE, superfamily unknown.
+RSX*	*	repeat:TE:ClassI:SINE		yes	high	SINE, superfamily unknown. Widened from edta: observed in repet.
 RPP*	edta	repeat:TE:ClassI:PLE		yes	high	Penelope.
-RXX*	edta	repeat:TE:ClassI		yes	high	Class I, order unknown.
+RXX*	*	repeat:TE:ClassI		yes	high	Class I, order unknown. Widened from edta: observed in repet.
 DTA*	edta	repeat:TE:ClassII:TIR:hAT		yes	high	D=DNA, T=TIR, A=hAT.
 DTC*	edta	repeat:TE:ClassII:TIR:CACTA		yes	high	CACTA.
 DTH*	edta	repeat:TE:ClassII:TIR:PIFHarbinger		yes	high	PIF-Harbinger.
 DTM*	edta	repeat:TE:ClassII:TIR:Mutator		yes	high	Mutator.
 DTT*	edta	repeat:TE:ClassII:TIR:Tc1Mariner		yes	high	Tc1/Mariner.
 DTP*	edta	repeat:TE:ClassII:TIR:PiggyBac		yes	medium	PiggyBac. Non-standard extension of the Wicker codes.
-DTX*	edta	repeat:TE:ClassII:TIR		yes	high	TIR, superfamily unknown.
+DTX*	*	repeat:TE:ClassII:TIR		yes	high	TIR, superfamily unknown. Widened from edta: observed in repet.
 DHH*	edta	repeat:TE:ClassII:Helitron		yes	high	D=DNA, H=Helitron.
 DMM*	edta	repeat:TE:ClassII:Maverick		yes	high	Maverick/Polinton.
 DYC*	edta	repeat:TE:ClassII:Crypton		yes	high	Crypton.
-DXX*	edta	repeat:TE:ClassII		yes	high	Class II, order unknown.
+DXX*	*	repeat:TE:ClassII		yes	high	Class II, order unknown. Widened from edta: observed in repet.
 MITE*	edta	repeat:TE:ClassII:TIR		yes	medium	MITEs are non-autonomous TIR derivatives. EDTA usually suffixes the code (MITE/DTA); the more specific prefix rule wins where present.
 TIR*	edta	repeat:TE:ClassII:TIR		yes	high	
 XXX*	edta	repeat		unknown	high	EDTA's fully-unknown code. Uninformative, not conflicting.
@@ -220,3 +220,43 @@ solo_LTR	fastltr	repeat:TE:ClassI:LTR		yes	high	Recombined remnant; genuinely LT
 Copia	fastltr	repeat:TE:ClassI:LTR:Copia		yes	high	Assigned by protein-domain similarity, not by library match.
 Gypsy	fastltr	repeat:TE:ClassI:LTR:Gypsy		yes	high	
 unknown_LTR	fastltr	repeat:TE:ClassI:LTR		yes	high	Order asserted, superfamily not.
+# ---------------------------------------------------------------- REPET (TEannot) Wicker codes, GCA_951799975.1
+# REPET's TEdenovo classifier emits Wicker codes in the TargetDescription
+# (`Wcode:`), extracted verbatim by scripts/repetgff2bed.py. Plain codes shared
+# with EDTA (RIX/RSX/RXX/DTX/DXX) were verified against real REPET output and
+# widened to tool=* above. The rows below are codes not previously observed,
+# plus REPET's compound codes (`A|B`): a consensus whose reference matches span
+# more than one superfamily -- a chimeric or ambiguous consensus. Each compound
+# maps EXACTLY (no trailing *) to the deepest hierarchy level its component
+# codes share; the exact-beats-prefix rule in ClassMap.lookup keeps the RIX*
+# style prefix rules from grabbing them. Do not map a compound to its first
+# code: that asserts a superfamily REPET itself declined to choose.
+RPX*	*	repeat:TE:ClassI:PLE		yes	high	Penelope order, superfamily unknown. Observed in repet.
+RYX*	*	repeat:TE:ClassI:DIRS		yes	high	DIRS order, superfamily unknown. Observed in repet.
+DHX*	*	repeat:TE:ClassII:Helitron		yes	high	Helitron order, superfamily unknown. Observed in repet.
+DYX*	*	repeat:TE:ClassII:Crypton		yes	high	Crypton order, superfamily unknown. Observed in repet.
+DXX-MITE*	repet	repeat:TE:ClassII:TIR		yes	medium	MITE structure on a ClassII-unknown code; MITEs are non-autonomous TIR derivatives (same reasoning as the edta MITE* rule).
+RXX-LARD*	repet	repeat:TE:ClassI:LTR		yes	medium	LARD: large non-autonomous LTR-retrotransposon derivative. Wicker files LARD within the LTR order; order asserted, superfamily not.
+RXX-TRIM*	repet	repeat:TE:ClassI:LTR		yes	medium	TRIM: terminal-repeat retrotransposon in miniature, non-autonomous LTR derivative. As LARD.
+DTX|RIX	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+DTX|RSX	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+DTX|RXX-LARD	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+DTX|RYX	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+DXX-MITE|RYX	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RIX|DTX	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RIX|DTX|RYX	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RIX|DXX-MITE	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RIX|RLX	repet	repeat:TE:ClassI		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RIX|RSX	repet	repeat:TE:ClassI		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RLX|RIX	repet	repeat:TE:ClassI		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RLX|RYX	repet	repeat:TE:ClassI		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RLX|RYX|DTX	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RPX|DXX-MITE	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RSX|DTX	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RSX|DXX-MITE	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RSX|DXX-MITE|RIX	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RSX|RIX	repet	repeat:TE:ClassI		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RSX|RIX|DXX-MITE	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RXX-LARD|DTX	repet	repeat:TE		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RXX-TRIM|RSX	repet	repeat:TE:ClassI		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.
+RYX|RLX	repet	repeat:TE:ClassI		yes	high	Compound Wcode: consensus matched references from more than one superfamily; mapped to the deepest level the codes share.

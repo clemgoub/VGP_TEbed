@@ -64,6 +64,7 @@ HUB_TXT = """hub vgpRepeatConsensus
 shortLabel VGP Repeat Consensus
 longLabel Multi-tool repeat annotation consensus for VGP assemblies
 useOneFile off
+genomesFile genomes.txt
 email {email}
 descriptionUrl documentation.html
 """
@@ -207,11 +208,16 @@ def write_hub_files(hub_root: str, assembly: str, twobit: str | None = None,
     existing = open(gpath).read() if os.path.exists(gpath) else ""
     if f"genome {assembly}" not in existing:
         block = [f"genome {assembly}", f"trackDb {assembly}/trackDb.txt",
-                 "groups groups.txt"]
-        if description:
-            block.append(f"description {description}")
-        if twobit:
-            block.append(f"twoBitPath {twobit}")
+                 ]
+        # Deliberately a TRACK hub stanza (genome + trackDb only). Adding
+        # groups/description/twoBitPath turns the stanza into an ASSEMBLY hub,
+        # which declares its OWN genome named GCA_... -- colliding with the
+        # GenArk assembly of the same name instead of attaching tracks to it.
+        # Symptom of the assembly-hub form on genome.ucsc.edu: hub connects
+        # without error but no tracks appear on the GenArk genome. Every VGP
+        # assembly is on GenArk, so the track-hub form is the correct default;
+        # the twobit URL is still used for the IGV genome descriptor
+        # (<assembly>.genome.json), which is a separate file.
         with open(gpath, "a") as fh:
             if existing and not existing.endswith("\n\n"):
                 fh.write("\n")

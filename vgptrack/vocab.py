@@ -230,17 +230,31 @@ class ClassMap:
         # than stopping at bare TIR via the MITE rule; EDTA labels MITEs that
         # way routinely, and the superfamily is the informative part.
         best, best_key = None, None
-        for cand in cands:
+        for ci, cand in enumerate(cands):
             low = cand.lower()
             hits = []
             for tid in (tool_id, "*"):
                 if (low, tid) in self.exact:
-                    hits.append((self.exact[(low, tid)], len(low), tid))
+                    hits.append((self.exact[(low, tid)], len(low), tid, True))
             for pref, tid, rec in self.prefix:
                 if tid in (tool_id, "*") and low.startswith(pref):
-                    hits.append((rec, len(pref), tid))
-            for rec, rule_len, tid in hits:
+                    hits.append((rec, len(pref), tid, False))
+            for rec, rule_len, tid, is_exact in hits:
                 key = (
+                    # An exact rule matching the FULL label (ci == 0) outranks
+                    # any prefix rule, regardless of path depth: it is by
+                    # definition the most specific statement the map can make
+                    # about that label. Without this, REPET's compound Wicker
+                    # codes break: the exact rule `RLX|RYX -> repeat:TE:ClassI`
+                    # (the deepest level the two codes share) would lose to the
+                    # prefix rule `RLX* -> ...:LTR`, asserting an order the
+                    # tool itself left ambiguous. Restricted to ci == 0 because
+                    # an exact hit on the bare-code FALLBACK candidate (the
+                    # `Class/CODE` split) must not outrank a rule written for
+                    # the full label: `SINE/tRNA` splits to `tRNA`, whose exact
+                    # rule (repeat:multigene:tRNA) would otherwise beat the
+                    # intended SINE/tRNA* prefix rule.
+                    is_exact and ci == 0,
                     len(split_path(rec["canonical_path"])),  # deeper path wins
                     rule_len,                                # longer rule wins
                     tid != "*",                              # tool-specific wins

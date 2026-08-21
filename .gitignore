@@ -3,6 +3,9 @@
 # delete; never commit it (it contains the blob being removed).
 *.bundle
 
+# Private venv created by scripts/hubspace_upload.sh for hubtools' tuspy dep
+.hubtools-venv/
+
 # Tool outputs and their conversions -- redownloadable from GenomeArk
 # (see docs/FASTLTR.md, docs/EDTA.md for the exact S3 keys). These run to
 # hundreds of MB; inputs/fastan.bed was committed by accident before this

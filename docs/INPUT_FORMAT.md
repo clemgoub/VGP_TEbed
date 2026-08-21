@@ -160,6 +160,7 @@ for per-converter detail.
 | Satellome | native BED5 | `satellome2bed.py` | none — col 5 is redundant (verified) |
 | TRF | GenArk `simpleRepeat.bb` (bigBed 4+12) | `simplerepeat2bed.py` | period+copyNum → `name` (`p<N>_x<N>_<unit>`); TRF score → `SW_score`; 100−perMatch → `perc_div` (`divergence_only`); base comp/entropy/unit seq not carried (rederivable from the public track) |
 | WindowMasker | GenArk `windowMasker.bb` (bigBed 3) | `windowmasker2bed.py` | nothing to carry — bare intervals; emits `Unknown` (pure existence, abstains from class) |
+| REPET | TEannot GFF3 (`match`/`match_part`) | `repetgff2bed.py` | one row per `match_part` (fragment), copy id → `hit_id`; fragment `Identity` → `perc_div` (consensus divergence; match-level `AlignIdentity` is a placeholder and NOT used); `Wcode` → `repeat_class_family` verbatim incl. compound codes; **`OtherTargets` and `TargetDescription` evidence detail (coding/struct annotations) not carried** — see docs/REPET.md |
 
 Where a native field has no BED16 column, the converters route it into `name`
 or `hit_id` so it survives into the per-tool track mouseover. Known residual
