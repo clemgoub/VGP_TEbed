@@ -236,10 +236,12 @@ Most useful right now:
   be benchmarked rather than merely described.
 - **Vocabulary review** — `config/class_map.tsv` maps 135 observed labels onto a
   Wicker-style hierarchy. Mapping errors silently become false disagreement.
-- **Converters** for tools not yet supported (`scripts/`), producing the
-  [BED16 input format](docs/INPUT_FORMAT.md). Better still: **tools that emit
-  RepeatMasker `.out` or BED16 directly** need no converter at all — three of
-  the six current tools already do.
+- **Converters** for new tools (`scripts/`). For supported tools the native
+  output + converter is the preferred ingest — the converter extracts
+  everything the native format offers and documents what cannot be carried.
+  For tools without a converter, the
+  [BED16 input format](docs/INPUT_FORMAT.md) is the interchange: supply that
+  and the tool joins the build with no new code.
 - **Design critique** — the open questions are collected in
   [docs/DESIGN_NOTES.md](docs/DESIGN_NOTES.md).
 

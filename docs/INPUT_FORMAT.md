@@ -134,32 +134,42 @@ OX637595.1	48210	53887	LTR_retro_1	NA	+	NA	NA	NA	NA	NA	LTR/Gypsy	NA	NA	NA	TE_str
 
 Working examples: `tests/data/*.bed.gz`.
 
-## 6. Converters
+## 6. Converters — the supported ingest path for known tools
+
+**Policy: for a supported tool, the native output + its converter is the
+preferred input.** The converter is written against the tool's own format and
+documents exactly what it keeps, transforms and drops — so nothing is lost to
+a hand conversion, and the load-bearing decisions (feature level, identity
+semantics, coordinate convention) are made once, reviewed, and versioned in
+this repo rather than re-made ad hoc by every data submitter. The BED16 of §2
+is the **interchange format for tools without a converter**: any tool can join
+the build today by supplying it, and a converter can be added later when the
+tool's native format warrants one.
 
 In `scripts/`. See [DESIGN_NOTES.md](DESIGN_NOTES.md#input-format-conversion-scripts)
 for per-converter detail.
 
-| Tool | Source format supplied | Script | Production expectation |
+| Tool | Native input | Script | Native fields beyond BED16, and where they go |
 |---|---|---|---|
-| RepeatModeler2 | RepeatMasker `.out` | `rmout2bed.py` | `.out` — no change |
-| Pantera | BED16 (already conformant) | none needed | `.out` from the RepeatMasker run |
-| fastLTR | RepeatMasker `.out` | `rmout2bed.py` | `.out` — no change |
-| EDTA | GFF3 (`*.TEanno.gff3`) | `edtagff2bed.py` | converter until EDTA emits `.out`/BED16 |
-| FasTAN | native BED | `fastan2bed.py` | converter until FasTAN emits BED16 |
-| LTRDeNovo | native GFF3 (NGSEP) | `ltrdenovogff2bed.py` | converter until it emits `.out`/BED16 |
-| Satellome | native BED5 | `satellome2bed.py` | converter until it emits BED16 |
+| RepeatModeler2 | RepeatMasker `.out` | `rmout2bed.py` | none — `.out` maps 1:1 onto BED16 |
+| fastLTR | RepeatMasker `.out` | `rmout2bed.py` | none — same 1:1 mapping |
+| Pantera | RepeatMasker `.out` (BED16 supplied for the pilot) | `rmout2bed.py` | none |
+| EDTA | GFF3 (`*.TEanno.gff3`) | `edtagff2bed.py` | `method` (structural/homology) → `hit_id` prefix; `identity` → `perc_div` (structural LTR identity deliberately NOT emitted as divergence — within-element, not vs consensus) |
+| FasTAN | native BED (period, identity) | `fastan2bed.py` | `period` → `name` (`tandem_p<period>`); unit identity → `score` + `perc_div` (flagged `divergence_only` in the manifest) |
+| LTRDeNovo | native GFF3 (NGSEP) | `ltrdenovogff2bed.py` | `method` → `name` suffix; **LTR/TSD sub-features currently dropped** — see below |
+| Satellome | native BED5 | `satellome2bed.py` | none — col 5 is redundant (verified) |
 
-**Three of seven tools already supply a standard input.** RepeatModeler2 and
-fastLTR provide RepeatMasker `.out`; Pantera's was supplied as a conformant
-BED16 directly. Those need no per-tool code — `rmout2bed.py` is the generic
-`.out` reader, not a fastLTR-specific script.
+Where a native field has no BED16 column, the converters route it into `name`
+or `hit_id` so it survives into the per-tool track mouseover. Known residual
+losses, kept honest here rather than hidden:
 
-The remaining four are the real format gap: EDTA, FasTAN, LTRDeNovo and
-Satellome emit native formats, and each converter encodes a decision the tool
-should be making itself (which GFF3 feature level represents the element;
-whether an `identity` field is consensus divergence or a within-element
-measure; whether a length filter applied upstream is part of the annotation).
-Each `docs/<TOOL>.md` records that decision so it can be raised upstream.
+- **LTRDeNovo sub-features**: `five_prime_LTR` / `three_prime_LTR` spans
+  (228 structural elements) and `target_site_duplication` spans + sequences
+  (118) are not representable in a flat BED16 row. The element footprint and
+  detection method survive; the internal architecture does not. If wanted,
+  the natural home is BED12 blocks on the per-tool track (thick = internal
+  domain, blocks = LTRs), which is a display change, not an ingest change.
+- **RepeatMasker `.out` overlap flag** (final `*` column) is not carried.
 
 ### Prototype-only accommodations
 
@@ -172,8 +182,10 @@ Distinct from format conversion, and expected to disappear:
   fastLTR output carries the assembly's real contig IDs, so this step retires
   and fastLTR ingests through plain `rmout2bed.py`.
 
-If you are a tool author reading this: emitting RepeatMasker `.out`, or the
-BED16 of §2, removes your tool from the converter table entirely.
+If you are a tool author whose tool is not in the table: the fastest route in
+is the BED16 of §2 (or RepeatMasker `.out`). If your native format carries
+information BED16 cannot express, open an issue — that is the case for writing
+a converter.
 
 Converting from RepeatMasker `.out`, remember: coordinates are 1-based
 fully-closed, so `chromStart = query_begin - 1`; strand `C` becomes `-`;
