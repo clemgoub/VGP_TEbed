@@ -63,8 +63,7 @@ UNIQUE_AS = """table toolUnique
 HUB_TXT = """hub vgpRepeatConsensus
 shortLabel VGP Repeat Consensus
 longLabel Multi-tool repeat annotation consensus for VGP assemblies
-useOneFile off
-genomesFile genomes.txt
+useOneFile on
 email {email}
 descriptionUrl documentation.html
 """
@@ -193,41 +192,50 @@ def pertool_columns() -> list:
 
 def write_hub_files(hub_root: str, assembly: str, twobit: str | None = None,
                     email: str = "", description: str = "") -> None:
-    """Write hub.txt, genomes.txt, groups.txt and the hub-level description.
+    """Write a ONE-FILE hub.txt (useOneFile on) plus the hub description.
 
-    genomes.txt is APPENDED to, not overwritten: a hub carries one block per
-    assembly, and building a second assembly must not erase the first.
+    hub.txt is REGENERATED on every build from the per-assembly trackDb.txt
+    files on disk: hub header, then one "genome <asm>" stanza per assembly
+    directory, each followed by that assembly's trackDb content with
+    bigDataUrl paths prefixed "<asm>/". A second assembly extends the file
+    rather than erasing the first.
+
+    Why one-file: the split form (useOneFile off + "genomesFile genomes.txt")
+    connects on genome.ucsc.edu but binds ZERO assemblies when hosted on
+    hubSpace -- the genomesFile indirection is never resolved there (verified
+    2026-08-21 by bisection: identical content works one-file, fails split).
+    The genome stanza stays minimal (genome + inline tracks, no groups/
+    description/twoBitPath) so it attaches to the existing GenArk assembly
+    instead of declaring a colliding assembly-hub genome. The twobit URL
+    feeds only the IGV genome descriptor (<assembly>.genome.json).
+
+    A hand-edited email in an existing hub.txt is preserved across rebuilds.
     """
     os.makedirs(hub_root, exist_ok=True)
     hub_txt = os.path.join(hub_root, "hub.txt")
-    if not os.path.exists(hub_txt):
-        with open(hub_txt, "w") as fh:
-            fh.write(HUB_TXT.format(email=email or "CONTACT_EMAIL_HERE"))
 
-    gpath = os.path.join(hub_root, "genomes.txt")
-    existing = open(gpath).read() if os.path.exists(gpath) else ""
-    if f"genome {assembly}" not in existing:
-        block = [f"genome {assembly}", f"trackDb {assembly}/trackDb.txt",
-                 ]
-        # Deliberately a TRACK hub stanza (genome + trackDb only). Adding
-        # groups/description/twoBitPath turns the stanza into an ASSEMBLY hub,
-        # which declares its OWN genome named GCA_... -- colliding with the
-        # GenArk assembly of the same name instead of attaching tracks to it.
-        # Symptom of the assembly-hub form on genome.ucsc.edu: hub connects
-        # without error but no tracks appear on the GenArk genome. Every VGP
-        # assembly is on GenArk, so the track-hub form is the correct default;
-        # the twobit URL is still used for the IGV genome descriptor
-        # (<assembly>.genome.json), which is a separate file.
-        with open(gpath, "a") as fh:
-            if existing and not existing.endswith("\n\n"):
-                fh.write("\n")
-            fh.write("\n".join(block) + "\n\n")
+    kept_email = email or "CONTACT_EMAIL_HERE"
+    if os.path.exists(hub_txt):
+        for line in open(hub_txt):
+            if line.startswith("email "):
+                old = line.split(None, 1)[1].strip()
+                if old and old != "CONTACT_EMAIL_HERE":
+                    kept_email = old
+                break
 
-    gr = os.path.join(hub_root, "groups.txt")
-    if not os.path.exists(gr):
-        with open(gr, "w") as fh:
-            fh.write("name varRep\nlabel Variation and Repeats\n"
-                     "priority 1\ndefaultIsClosed 0\n")
+    parts = [HUB_TXT.format(email=kept_email)]
+    for asm in sorted(d for d in os.listdir(hub_root)
+                      if os.path.isfile(os.path.join(hub_root, d, "trackDb.txt"))):
+        parts.append(f"\ngenome {asm}\n\n")
+        for line in open(os.path.join(hub_root, asm, "trackDb.txt")):
+            s = line.strip()
+            if s.startswith("bigDataUrl ") and "://" not in s:
+                indent = line[:len(line) - len(line.lstrip())]
+                parts.append(f"{indent}bigDataUrl {asm}/{s.split(None, 1)[1]}\n")
+            else:
+                parts.append(line)
+    with open(hub_txt, "w") as fh:
+        fh.write("".join(parts))
 
     doc = os.path.join(hub_root, "documentation.html")
     if not os.path.exists(doc):

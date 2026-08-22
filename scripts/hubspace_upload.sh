@@ -36,7 +36,23 @@ if ! "$VENV/bin/python" -c 'import tusclient' 2>/dev/null; then
     python3 -m venv "$VENV"
     "$VENV/bin/pip" -q install tuspy requests
 fi
+# Stock hubtools hardcodes genome:"" in the upload metadata; hubSpace then has
+# no genome binding for the hub -- the Hub Upload table shows a blank genome
+# column, "view selected" fails with "Can not find database ''", and the hub
+# attaches with zero assemblies. Our bin/hubtools is patched to read
+# HUBTOOLS_GENOME for that field.
+export HUBTOOLS_GENOME=GCA_951799975.1
 "$VENV/bin/python" ./bin/hubtools up "$HUBNAME" -i hub
+
+# hubSpace appends an auto-generated track stanza to the SERVED hub.txt for
+# every file uploaded after it (observed: 17 junk stanzas incl. 'type NA' for
+# igv_session.xml). Re-uploading hub.txt LAST, alone, replaces the mangled
+# copy with our clean one. Touch defeats the mtime cache for just this file.
+touch hub/hub.txt
+"$VENV/bin/python" ./bin/hubtools up "$HUBNAME" -i hub
+echo
+echo "verify the served hub.txt is clean (should be 7 lines, no track stanzas):"
+curl -s "https://genome.ucsc.edu/hubspace/a1/cgoubert/$HUBNAME/hub.txt" | head -12
 
 echo
 echo "done. Connect it on the public browser:"
