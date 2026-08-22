@@ -69,6 +69,52 @@ LEVEL_NAMES = {0: "none", 1: "repeat", 2: "TE vs tandem", 3: "class",
 CONFLICT_RGB = "0,0,0"
 
 
+def _element_groups(seg: pd.DataFrame, sliver_bp: int = 20) -> np.ndarray:
+    """Group ids assigning each (sorted) segment to a display ELEMENT.
+
+    THE single grouping rule -- merge_for_display and _core_intervals both use
+    it; they diverged once (thickStart landed outside its element) and must
+    not again. An element is a maximal run of genomically adjacent segments
+    whose consensus classes are COMPATIBLE (one path a prefix of the other)
+    and whose conflict state matches: a conflicted stretch never merges into
+    an unconflicted one (compatibility alone fuses a Jockey segment with a
+    neighbouring class-conflicted `repeat:TE` truncation).
+
+    Slivers (<= sliver_bp, boundary jitter between tools) never start a new
+    group -- but must not BRIDGE a genuine class change either. The old rule
+    (compat |= sliver) made a sliver unconditionally transparent, so a 7 bp
+    CACTA fragment at a tandem/CACTA junction fused two rm2+pantera tandem
+    runs into an EDTA-only CACTA element (user-reported at
+    OX637609.1:15,055,585-15,056,636, a 1051 bp "DNA 2/5" feature mostly
+    single-tool inside). Each sliver instead INHERITS the class/conflict of
+    the nearest non-sliver to its left in the same adjacent run, and
+    compatibility is evaluated on those effective values: the sliver joins
+    its left neighbour, while the sliver|right boundary compares the real
+    flanking classes, so a genuine change still splits.
+    """
+    n = len(seg)
+    adj = np.zeros(n, dtype=bool)
+    adj[1:] = ((seg.chromStart.to_numpy()[1:] == seg.chromEnd.to_numpy()[:-1]) &
+               (seg.chrom.to_numpy()[1:] == seg.chrom.to_numpy()[:-1]))
+    cp = seg.consensus_path.to_numpy()
+    cf = seg.conflict_depth.to_numpy()
+    sliver = (seg.chromEnd - seg.chromStart).to_numpy() <= sliver_bp
+    own = ~(sliver & adj)
+    if n:
+        own[0] = True
+    src_idx = np.maximum.accumulate(np.where(own, np.arange(n), -1))
+    cp_eff = cp[src_idx]
+    cf_eff = (cf < 0)[src_idx]
+    compat = np.zeros(n, dtype=bool)
+    compat[1:] = np.fromiter(
+        (a.startswith(b) or b.startswith(a)
+         for a, b in zip(cp_eff[:-1], cp_eff[1:])),
+        dtype=bool, count=n - 1)
+    same_conflict = np.zeros(n, dtype=bool)
+    same_conflict[1:] = cf_eff[1:] == cf_eff[:-1]
+    return np.cumsum(~(adj & compat & same_conflict)) - 1
+
+
 def merge_for_display(seg: pd.DataFrame, sliver_bp: int = 20) -> pd.DataFrame:
     """Merge segments into display ELEMENTS.
 
@@ -90,38 +136,7 @@ def merge_for_display(seg: pd.DataFrame, sliver_bp: int = 20) -> pd.DataFrame:
     bigWigs; nothing here is lost, only displayed differently.
     """
     seg = seg.sort_values(["chrom", "chromStart"], kind="stable").reset_index(drop=True)
-    adj = np.zeros(len(seg), dtype=bool)
-    adj[1:] = ((seg.chromStart.to_numpy()[1:] == seg.chromEnd.to_numpy()[:-1]) &
-               (seg.chrom.to_numpy()[1:] == seg.chrom.to_numpy()[:-1]))
-    cp = seg.consensus_path.to_numpy()
-    compat = np.zeros(len(seg), dtype=bool)
-    compat[1:] = np.fromiter(
-        (a.startswith(b) or b.startswith(a) for a, b in zip(cp[:-1], cp[1:])),
-        dtype=bool, count=len(seg) - 1)
-    # Compatibility alone over-merges: a Jockey segment abuts a class-conflicted
-    # segment whose consensus has been truncated to `repeat:TE`, which is a
-    # prefix of the Jockey path and therefore "compatible" -- so two distinct
-    # repeats fuse and the element inherits a conflict neither tool made at the
-    # Jockey locus. Conflict state must therefore also match: a conflicted
-    # stretch never merges into an unconflicted one.
-    cf = seg.conflict_depth.to_numpy()
-    same_conflict = np.zeros(len(seg), dtype=bool)
-    same_conflict[1:] = (cf[1:] < 0) == (cf[:-1] < 0)
-    # Sliver absorption. Where two tools' boundaries differ by a few bases, the
-    # overlap edge produces a 1-20 bp segment carrying a spurious "conflict"
-    # that exists only because one tool's element ends mid-way through another's.
-    # Such slivers are boundary jitter, not biology: they are not allowed to
-    # break an element. The threshold is deliberately small -- a real repeat
-    # fragment below ~20 bp is not independently meaningful at browser
-    # resolution, and the full-resolution segments retain the detail.
-    seg_len = (seg.chromEnd - seg.chromStart).to_numpy()
-    sliver = seg_len <= sliver_bp
-    # A sliver never starts a new group, and never prevents its neighbours
-    # from joining across it.
-    same_conflict = same_conflict | sliver
-    compat = compat | sliver
-    new_group = ~(adj & compat & same_conflict)
-    gid = np.cumsum(new_group) - 1
+    gid = _element_groups(seg, sliver_bp)
 
     lens = (seg.chromEnd - seg.chromStart).to_numpy()
     seg2 = seg.assign(
@@ -303,19 +318,7 @@ def core_runs(seg: pd.DataFrame, elements: pd.DataFrame, sliver_bp: int = 20) ->
     renders an unfilled outline.
     """
     seg = seg.sort_values(["chrom", "chromStart"], kind="stable").reset_index(drop=True)
-    adj = np.zeros(len(seg), dtype=bool)
-    adj[1:] = ((seg.chromStart.to_numpy()[1:] == seg.chromEnd.to_numpy()[:-1]) &
-               (seg.chrom.to_numpy()[1:] == seg.chrom.to_numpy()[:-1]))
-    cp = seg.consensus_path.to_numpy()
-    compat = np.zeros(len(seg), dtype=bool)
-    compat[1:] = np.fromiter(
-        (a.startswith(b) or b.startswith(a) for a, b in zip(cp[:-1], cp[1:])),
-        dtype=bool, count=len(seg) - 1)
-    cf = seg.conflict_depth.to_numpy()
-    same_conflict = np.zeros(len(seg), dtype=bool)
-    same_conflict[1:] = (cf[1:] < 0) == (cf[:-1] < 0)
-    sliver = (seg.chromEnd - seg.chromStart).to_numpy() <= sliver_bp
-    gid = np.cumsum(~(adj & (compat | sliver) & (same_conflict | sliver))) - 1
+    gid = _element_groups(seg, sliver_bp)
     full = seg.support_frac.to_numpy() >= 0.999
     s = seg.chromStart.to_numpy(); e = seg.chromEnd.to_numpy()
     n_el = len(elements)
@@ -558,3 +561,42 @@ def build_signals(seg: pd.DataFrame) -> dict[str, pd.DataFrame]:
     out["repeatDivergence"] = base[ok].assign(value=np.round(d[ok], 2))
 
     return out
+
+
+def build_divergence_heat(seg: pd.DataFrame, ceiling: float = 40.0) -> pd.DataFrame:
+    """BED9 heat rendering of divergence: dark = 0%, fading with divergence.
+
+    The classic RepeatMasker browser display shades elements by divergence
+    with young (low-divergence) copies dark; the bigWig histogram inverts
+    that intuition. This emits an itemRgb bigBed drawn dense: grey level
+    scales linearly from 0 (black) at 0% to 210 at ``ceiling``%%, clamped.
+    Adjacent same-grey segments are merged, so item count stays well below
+    the segment count. Quantitative values remain in repeatDivergence.bw.
+    """
+    d = seg.mean_div.to_numpy()
+    ok = ~np.isnan(d)
+    s = seg[ok]
+    grey = np.minimum(d[ok] / ceiling, 1.0)
+    grey = np.round(grey * 210).astype(int)
+    df = pd.DataFrame({
+        "chrom": s.chrom.to_numpy(), "start": s.chromStart.to_numpy(),
+        "end": s.chromEnd.to_numpy(), "div": np.round(d[ok], 1), "grey": grey,
+    }).sort_values(["chrom", "start"], kind="stable").reset_index(drop=True)
+    new = np.ones(len(df), dtype=bool)
+    if len(df) > 1:
+        new[1:] = ~((df.chrom.to_numpy()[1:] == df.chrom.to_numpy()[:-1]) &
+                    (df.start.to_numpy()[1:] == df.end.to_numpy()[:-1]) &
+                    (df.grey.to_numpy()[1:] == df.grey.to_numpy()[:-1]))
+    gid = np.cumsum(new) - 1
+    g = df.groupby(gid, sort=False)
+    out = pd.DataFrame({
+        "chrom": g.chrom.first(), "chromStart": g.start.min(),
+        "chromEnd": g.end.max(),
+        "name": [f"{v:.1f}%" for v in g["div"].mean().round(1)],
+        "score": 0, "strand": ".",
+    })
+    out["thickStart"] = out.chromStart
+    out["thickEnd"] = out.chromEnd
+    gv = g.grey.first().to_numpy()
+    out["itemRgb"] = [f"{v},{v},{v}" for v in gv]
+    return out.reset_index(drop=True)

@@ -240,12 +240,21 @@ def bigfile_info(path, bindir=None) -> dict:
 
 
 def hub_check(hub_txt, bindir=None, tracks=True):
-    """Run UCSC hubCheck. Returns (returncode, combined output)."""
+    """Run UCSC hubCheck. Returns (returncode, combined output).
+
+    The path is made absolute first: hubCheck's one-file hub parser doubles a
+    RELATIVE directory prefix when resolving bigDataUrls ("hub/hub.txt" looks
+    for tracks under "hub/hub/..."), reporting phantom 'Couldn't open' errors
+    for a perfectly good hub. Absolute paths (and URLs) are unaffected.
+    """
     import subprocess
+    hub_txt = str(hub_txt)
+    if "://" not in hub_txt:
+        hub_txt = os.path.abspath(hub_txt)
     exe = find_kent("hubCheck", bindir)
     if exe is None:
         return 0, "hubCheck not available -- skipped"
-    cmd = [str(exe)] + ([] if tracks else ["-noTracks"]) + [str(hub_txt)]
+    cmd = [str(exe)] + ([] if tracks else ["-noTracks"]) + [hub_txt]
     r = subprocess.run(cmd, capture_output=True, text=True)
     return r.returncode, (r.stdout + r.stderr).strip() or "clean"
 

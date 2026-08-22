@@ -125,6 +125,12 @@ def build(args: argparse.Namespace) -> int:
         bg = os.path.join(args.work, f"{name}.bedGraph")
         df.to_csv(bg, sep="\t", header=False, index=False)
         bigfiles.bedgraph_to_bigwig(bg, args.sizes, os.path.join(outdir, f"{name}.bw"))
+    heat = summary.build_divergence_heat(seg)
+    heat_bed = os.path.join(args.work, "repeatDivergenceHeat.bed")
+    heat.to_csv(heat_bed, sep="\t", header=False, index=False)
+    bigfiles.bed_to_bigbed(heat_bed, args.sizes,
+                           os.path.join(outdir, "repeatDivergenceHeat.bb"),
+                           bed_type="bed9")
     _log("signal tracks written")
 
     # --- per-tool + discordance -------------------------------------------

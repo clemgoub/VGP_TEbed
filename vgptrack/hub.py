@@ -116,8 +116,9 @@ def write_trackdb(ran_tools, path, palette=None, tools=None,
         ("repeatSupportFrac", "Support Fraction",
          "Supporting tools as a fraction of tools able to call this class",
          "60,120,60", "1", 3),
-        ("repeatDivergence", "Divergence", "Mean divergence from family consensus (%)",
-         "160,60,60", "40", 4),
+        ("repeatDivergence", "Divergence (signal)",
+         "Mean divergence from family consensus (%), quantitative signal",
+         "160,60,60", "40", 5),
     ]:
         A(f"    track {name}")
         A("    parent repeatConsensus")
@@ -133,6 +134,19 @@ def write_trackdb(ran_tools, path, palette=None, tools=None,
         A(f"    priority {prio}")
         A("    html documentation")
         A("")
+    # ---- divergence heat (RepeatMasker-style: dark = young/0% divergence)
+    A("    track repeatDivergenceHeat")
+    A("    parent repeatConsensus")
+    A("    bigDataUrl repeatDivergenceHeat.bb")
+    A("    shortLabel Divergence")
+    A("    longLabel Divergence from family consensus (dark = 0%, light = 40%+)")
+    A("    type bigBed 9")
+    A("    itemRgb on")
+    A("    visibility dense")
+    A("    mouseOverField name")
+    A("    priority 4")
+    A("    html documentation")
+    A("")
     # ---- discordance
     A("    track toolUnique")
     A("    parent repeatConsensus")
@@ -143,7 +157,7 @@ def write_trackdb(ran_tools, path, palette=None, tools=None,
     A("    itemRgb on")
     A("    visibility dense")
     A("    searchIndex name")
-    A("    priority 5")
+    A("    priority 6")
     A("    html documentation")
     A("")
     # ---- per-tool composite
@@ -154,7 +168,7 @@ def write_trackdb(ran_tools, path, palette=None, tools=None,
     A("    longLabel Per-tool repeat annotation, full detail")
     A("    type bigBed 9 +")
     A("    visibility hide")
-    A("    priority 6")
+    A("    priority 7")
     A("    html documentation")
     A("")
     for t in (tools if tools is not None else ran_tools):
@@ -244,6 +258,12 @@ def write_hub_files(hub_root: str, assembly: str, twobit: str | None = None,
 
 
 HUB_DESC = """<h2>VGP Multi-Tool Repeat Annotation</h2>
+<p><b>Status: working tracks.</b> This hub exists to curate the VGP
+transposable-element and repeat families and is under active development.
+It is <b>not</b> an official prediction from the VGP repeat group. If these
+tracks are used for research, use them with this caveat in mind: contents,
+classifications and consensus calls may change without notice as curation
+proceeds.</p>
 <p>Transparent, multi-tool repeat evidence for Vertebrate Genomes Project
 assemblies. Each assembly directory carries a consensus summary track, per-base
 support and divergence signals, a single-tool discordance track, and the full
@@ -262,6 +282,11 @@ def write_docs(outdir: str, assembly: str, cmap, tools) -> str:
         f"<tr><td>{t.tool_id}</td><td>{t.short_label}</td>"
         f"<td>{t.version}</td><td>{t.scope}</td></tr>" for t in tools)
     html = f"""<h2>Description</h2>
+<p><b>Status: working tracks.</b> These tracks exist to curate the VGP
+transposable-element and repeat families and are under active development.
+They are <b>not</b> an official prediction from the VGP repeat group; any
+research use must keep this caveat in mind, as contents and consensus calls
+may change without notice.</p>
 <p>Repeat annotation for <b>{assembly}</b> from several independent tools, shown
 both as a consensus summary and as unmodified per-tool detail. Nothing is
 filtered on the basis of agreement: a call made by one tool alone is displayed

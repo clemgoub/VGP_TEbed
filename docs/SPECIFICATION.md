@@ -37,6 +37,7 @@ GCA_951799975.1/
     repeatSupport.bw          bigWig
     repeatSupportFrac.bw      bigWig
     repeatDivergence.bw       bigWig
+    repeatDivergenceHeat.bb   bigBed 9
     toolUnique.bb             bigBed 9+4
     repeat_rm2.bb             bigBed 9+7
     repeat_edta.bb            bigBed 9+7
@@ -83,9 +84,14 @@ absorbed into the element and re-expressed as BED12 geometry:
 
 Two guards keep elements honest:
 
-- **Sliver absorption (≤20 bp).** A segment shorter than this neither starts a
-  new element nor blocks its neighbours from joining across it. Without this,
-  single-base boundary jitter splits one repeat into three features.
+- **Sliver absorption (≤20 bp).** A segment shorter than this never starts a
+  new element. Without this, single-base boundary jitter splits one repeat
+  into three features. A sliver is **not** transparent, though: it inherits
+  the class and conflict state of the nearest non-sliver to its left, and
+  boundaries are evaluated on those effective values. A sliver therefore
+  joins the element to its left, but cannot bridge a genuine class change —
+  the old unconditional rule let a 7 bp fragment fuse two multi-tool tandem
+  runs into a mostly single-tool TE element spanning 1 kb.
 - **Conflict state must match to merge.** Class compatibility alone over-fuses:
   a truncated consensus path is a prefix of a longer one, so a conflicted stretch
   would absorb a clean neighbouring element and poison its classification.
@@ -262,7 +268,15 @@ The two support signals render as bar charts. `repeatDivergence` renders as a
 white at the 40% view limit, rather than the other way round. Divergence is a
 proxy for insertion age, so this makes recent, potentially active insertions
 the visually dense ones and lets ancient relics recede; a bar chart gave the
-opposite emphasis, since the tallest bars were the oldest copies. IGV's heatmap
+opposite emphasis, since the tallest bars were the oldest copies.
+
+On UCSC the same convention ships as `repeatDivergenceHeat.bb` (bigBed 9,
+`itemRgb`, drawn dense): grey level ramps linearly from black at 0%
+divergence to light grey at the 40% ceiling, the classic RepeatMasker-track
+shading. UCSC's bigWig renderer has no per-base heatmap mode, so the heat
+view is a separate itemRgb track; adjacent segments with the same grey are
+merged, the item name carries the divergence (mouseover), and the
+quantitative signal remains in `repeatDivergence.bw`. IGV's heatmap
 renderer has no alpha channel, so the fade is a ramp to white rather than to
 transparency. This is a session-level display choice only: the underlying
 bigWig is unchanged, and UCSC has no heatmap renderer for wiggle-type tracks,
