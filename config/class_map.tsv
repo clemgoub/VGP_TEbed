@@ -114,9 +114,10 @@ Maverick*	*	repeat:TE:ClassII:Maverick		yes	high	Maverick/Polinton.
 Polinton*	*	repeat:TE:ClassII:Maverick		yes	high	
 DNA/Maverick*	*	repeat:TE:ClassII:Maverick		yes	high	
 # ---------------------------------------------------------------- Tandem, low-complexity, host genes
-Satellite*	*	repeat:tandem:satellite		no	high	Includes Satellite/centr, /telo, /acro.
-Simple_repeat*	*	repeat:tandem:simple		no	high	
-Low_complexity*	*	repeat:tandem:lowcomplexity		no	high	
+Satellite*	satellome	repeat:tandem:satellite		no	high	Satellome asserts satellite from array evidence (>=10 kb); trusted at subclass depth.
+Satellite*	*	repeat:tandem		no	medium	DEMOTED 2026-08-22: homology "Satellite" is unreliable on GCA_951799975.1 -- 79-84% of rm2 Satellite bp unconfirmed by TRF/FasTAN, 0.3% overlap with Satellome. Existence kept, subclass withheld. See docs/TANDEM_TAXONOMY.md.
+Simple_repeat*	*	repeat:tandem:simple		no	high	74% of bp independently confirmed by TRF+FasTAN, median period 9. See docs/TANDEM_TAXONOMY.md.
+Low_complexity*	*	repeat:tandem:simple		no	medium	MERGED 2026-08-22 into simple: period space indistinguishable from Simple_repeat (median 15, 85% <=49), not homopolymer-dominated (6% p1-2). See docs/TANDEM_TAXONOMY.md.
 tandem*	*	repeat:tandem		no	medium	Generic tandem label.
 rRNA	*	repeat:multigene:rRNA		no	high	Host gene family, not a TE. Counts as repeat, not as TE.
 tRNA	*	repeat:multigene:tRNA		no	high	Distinct from SINE/tRNA, which IS a TE -- do not merge these two rules.
