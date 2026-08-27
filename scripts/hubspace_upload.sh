@@ -42,6 +42,19 @@ fi
 # attaches with zero assemblies. Our bin/hubtools is patched to read
 # HUBTOOLS_GENOME for that field.
 export HUBTOOLS_GENOME=GCA_951799975.1
+
+# hubtools skips files whose LOCAL mtime matches hub/.hubtools.files.json --
+# it never checks the server. If the hub folder was deleted in the Hub Upload
+# UI, a re-run uploads only hub.txt and every data file 404s. Probe one big
+# file first; if the server doesn't have it, drop the cache to force a full
+# upload.
+PROBE="https://genome.ucsc.edu/hubspace/a1/cgoubert/$HUBNAME/GCA_951799975.1/repeatSummary.bb"
+if [ -f hub/.hubtools.files.json ] && \
+   [ "$(curl -s -o /dev/null -w '%{http_code}' -r 0-0 "$PROBE")" != "206" ]; then
+    echo "server missing data files (hub deleted in UI?) -- clearing cache, full upload"
+    rm -f hub/.hubtools.files.json
+fi
+
 "$VENV/bin/python" ./bin/hubtools up "$HUBNAME" -i hub
 
 # hubSpace appends an auto-generated track stanza to the SERVED hub.txt for

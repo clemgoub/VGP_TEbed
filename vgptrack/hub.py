@@ -111,8 +111,11 @@ def write_trackdb(ran_tools, path, palette=None, tools=None,
     A("")
     # ---- signals
     for name, label, longlab, colour, vmax, prio in [
+        # viewLimits scales with the number of tools that RAN: it was hardcoded
+        # 0:3 from the three-tool era, so at ten tools the signal (max 9) drew
+        # flat-topped, clipped against a ceiling three tools high.
         ("repeatSupport", "Tool Support", "Number of distinct tools calling a repeat at each base",
-         "60,60,160", "3", 2),
+         "60,60,160", str(max(3, len(ran_tools))), 2),
         ("repeatSupportFrac", "Support Fraction",
          "Supporting tools as a fraction of tools able to call this class",
          "60,120,60", "1", 3),

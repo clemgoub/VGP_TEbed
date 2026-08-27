@@ -50,16 +50,20 @@ A UCSC-style assembly track hub (also loadable in IGV) containing:
 | Track | What it shows |
 |---|---|
 | **repeatSummary** | consensus call per element — class, how many tools support it, how deeply they agree, and thick/thin geometry showing where they agree on boundaries |
-| **repeatSupport**, **repeatSupportFrac**, **repeatDivergence** | per-base signals at full resolution, not display-merged |
+| **repeatSupport**, **repeatSupportFrac** | per-base signals at full resolution, not display-merged |
+| **repeatDivergenceHeat** | divergence from the family consensus, RepeatMasker-style shading (dark = 0%, light = 40%+); the quantitative `repeatDivergence.bw` is still built and drives the IGV heatmap |
 | **toolUnique** | intervals called by exactly one tool — where the tools disagree most |
 | **repeat_\<tool\>** | each tool's full unmodified output, with its own class label preserved verbatim |
 
-![Expected view at three test loci](report/igv_expected_view.png)
+![The hub on the UCSC Genome Browser](report/ucsc_hub_view.png)
 
-*Three contrasting loci. Thick block = the core every eligible tool agreed on;
-thin = full extent. Top: all three tools agree to superfamily. Middle: all three
-call a repeat but contradict each other on class (grey), so the agreed core is a
-57 bp sliver of a 13 kb feature. Bottom: a single-tool call.*
+*The hub as served to the UCSC Genome Browser, 49 kb of black goby chr15
+(`OX637609.1`). Top to bottom: **Repeat Summary** (consensus class by colour,
+thick block = the core every eligible tool agreed on, thin = full extent);
+**Tool Support** and **Support Fraction** per-base signals; **Divergence**
+rendered RepeatMasker-style (dark = 0%, light = 40%+); **Single-tool Calls**
+marking where exactly one tool made the call; then all ten per-tool tracks with
+each tool's unmodified output. The disagreement is displayed, not resolved.*
 
 ## Status
 
