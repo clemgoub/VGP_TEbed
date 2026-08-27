@@ -116,9 +116,10 @@ def write_trackdb(ran_tools, path, palette=None, tools=None,
         ("repeatSupportFrac", "Support Fraction",
          "Supporting tools as a fraction of tools able to call this class",
          "60,120,60", "1", 3),
-        ("repeatDivergence", "Divergence (signal)",
-         "Mean divergence from family consensus (%), quantitative signal",
-         "160,60,60", "40", 5),
+        # repeatDivergence.bw is still BUILT (quantitative source of truth,
+        # used by the IGV session's heatmap rendering) but no longer gets a
+        # browser stanza: two divergence tracks confused more than they told,
+        # and the RM-style heat rendering is the one the user kept.
     ]:
         A(f"    track {name}")
         A("    parent repeatConsensus")
@@ -327,9 +328,23 @@ class level, not disagreement.</p>
 <h2>Signals</h2>
 <p><b>Tool Support</b> and <b>Support Fraction</b> give the per-base support
 count and its fraction of the eligible denominator at full resolution &mdash;
-the summary track's display merge is not applied to them. <b>Divergence</b> is
-the mean percent divergence from the matched family consensus over the tools
-that report one.</p>
+the summary track's display merge is not applied to them.</p>
+
+<h2>Divergence</h2>
+<p>RepeatMasker-style shading: <b>dark = low divergence</b> (young, potentially
+active copies), fading to light grey at 40%+. The value is the mean percent
+divergence from the matched family consensus over the tools that report one;
+the exact figure is in the mouseover. Not every base has a value: tools differ
+in whether they report consensus divergence at all, and some calls (e.g.
+structural detections) carry none by design &mdash; those stretches are simply
+unshaded.</p>
+
+<p><b>&ldquo;No stretch where all eligible tools overlap&rdquo;</b> in a
+summary mouseover means what it says: at no base within the element did
+<i>every</i> eligible tool call a repeat simultaneously, so the element has no
+thick core &mdash; even when overall support looks high. Tools' boundaries
+rarely coincide exactly; an element supported 7-of-8 across its whole length
+can still lack a single base where all 8 agree.</p>
 
 <h2>Single-tool calls</h2>
 <p>Intervals where exactly one tool made a call. The mouseover names the other

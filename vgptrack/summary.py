@@ -69,6 +69,14 @@ LEVEL_NAMES = {0: "none", 1: "repeat", 2: "TE vs tandem", 3: "class",
 CONFLICT_RGB = "0,0,0"
 
 
+def _weighted_mode(gid: np.ndarray, values: np.ndarray, weights: np.ndarray) -> np.ndarray:
+    """Per-group value carrying the most total weight (bp), groups = 0..G-1 sorted."""
+    tmp = pd.DataFrame({"g": gid, "v": values, "w": weights})
+    bp = tmp.groupby(["g", "v"], sort=False).w.sum().reset_index()
+    pick = bp.loc[bp.groupby("g", sort=True).w.idxmax()].sort_values("g")
+    return pick.v.to_numpy()
+
+
 def _element_groups(seg: pd.DataFrame, sliver_bp: int = 20) -> np.ndarray:
     """Group ids assigning each (sorted) segment to a display ELEMENT.
 
@@ -159,7 +167,13 @@ def merge_for_display(seg: pd.DataFrame, sliver_bp: int = 20) -> pd.DataFrame:
         "struct_mask": g.struct_mask.apply(lambda s: np.bitwise_or.reduce(s.to_numpy())).to_numpy(),
         "eligible_mask": g.eligible_mask.apply(lambda s: np.bitwise_or.reduce(s.to_numpy())).to_numpy(),
         "n_support_max": g.n_support.max().to_numpy(),
-        "n_eligible": g.n_eligible.max().to_numpy(),
+        # length-weighted mode, NOT max: a single bp-scale sliver whose
+        # consensus fell to bare `repeat` makes every tool eligible there,
+        # and max() let that sliver inflate the whole element's denominator
+        # (user-reported: an element reading 5/5 over >95% of its length
+        # displayed as "5/10 tools"). The dominant value by bp is what the
+        # element actually is.
+        "n_eligible": _weighted_mode(gid, seg.n_eligible.to_numpy(), lens),
         # Deepest consensus reached anywhere in the element. Compatibility is
         # the merge condition, so the deepest path subsumes all the others.
         "agree_depth": g.agree_depth.max().to_numpy(),
@@ -512,6 +526,7 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
             v = float(f[i]) if f is not None else 1.0
             out.append(t if v > 0.95 else f"{t} {max(1, round(100 * v))}%")
         return ",".join(out)
+    names = bed.name.to_numpy()
     mouse = []
     for i in range(len(seg)):
         # "unclassified" means no tool said anything; when tools DID classify
@@ -520,9 +535,26 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
         if name_i.startswith("Repeat (unclassified)") and cfl[i] != "none":
             name_i = "Class disputed"
         st_i = _tools_with_cov(i, st[i]) if st[i] != "none" else st[i]
-        parts = [f"{name_i} | {ns[i]}/{ne[i]} tools ({st_i})"]
+        # Open by REPRODUCING the item label, then spell out both fractions in
+        # words. The label is {class} {classifiers}/{detectors}; the hover
+        # previously opened with a DIFFERENT fraction (detectors/eligible), so
+        # "DNA 4/5" hovered as "DNA | 5/10 tools" -- two unexplained ratios
+        # side by side (user-reported). One label, each number named.
+        nc = int(n_classify[i])
+        if not nc:
+            _tw = "tool" if ns[i] == 1 else f"all {ns[i]} detecting tools"
+            head = (f"{names[i]}: unclassified by the detecting {_tw}"
+                    if ns[i] == 1 else f"{names[i]}: unclassified by {_tw}")
+        elif name_i == "Class disputed":
+            head = (f"{names[i]}: {nc} of {ns[i]} detecting tools assert a "
+                    f"class, and they disagree")
+        else:
+            head = f"{names[i]}: {nc} of {ns[i]} detecting tools classify it {name_i}"
+        parts = [head,
+                 f"detected by {ns[i]}/{ne[i]} eligible tools ({st_i})"]
         # who actually asserted the class, when fewer than everyone did; and
-        # never say "agree" on the word of a single classifier
+        # never say "agree" on the word of a single classifier. The head
+        # already covers the zero-classifier case in words.
         if 0 < n_classify[i] < ns[i]:
             parts.append(f"classified by {','.join(classifiers[i])} only")
         if n_classify[i] >= 2:
@@ -531,14 +563,12 @@ def build_summary_bed(seg: pd.DataFrame, tools, registry, palette,
         elif n_classify[i] == 1:
             parts.append(f"sole assertion at {agr[i]}" if agr[i] != "none"
                          else "sole assertion")
-        else:
-            parts.append("unclassified by all")
         if cfl[i] != "none":
             parts.append(f"CONFLICT at {cfl[i]}")
         if core[i] > 0:
             parts.append(f"core {core[i]}/{span[i]} bp")
         else:
-            parts.append("no full-support core")
+            parts.append("no stretch where all eligible tools overlap")
         if dv[i] != "not reported":
             parts.append(f"div {dv[i]}")
         mouse.append(" | ".join(parts))
